@@ -45,18 +45,23 @@ int main(int argc, char *argv[]){
 //contenant de reception	
   char recu[256];
 
-//contenant d'envoi
-  char reponse[256]="doremifa solasido";
 
 //on recoit
   int resR = recv(descBrCv,recu,sizeof(recu),0);
  
 cout<<"message recu: "<<recu<<endl<<endl;
 
-//on envoit/repond
 
+
+//contenant d'envoi
+  char reponse[256]="j'ai recu le message: ";
+
+strcat(reponse,recu);
+
+//on envoit/repond
   int resS = send(descBrCv,reponse,strlen(reponse),0);
   
+
 }
 
 
