@@ -5,7 +5,6 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
-
 #include "sock.h"
 #include "sockdist.h"
 
@@ -44,7 +43,7 @@ cout<<"res du connect: "<<boolConnect<<endl;
   char envoi[256]="undeux troisquatre cinq pfiou c'est trop long";
 
 //message/reponse a recevoir
-  char *recu = new char[256];
+  char recu[256];
  
 //on envoi
   int resS = send(descBrCli,envoi,strlen(envoi),0);
