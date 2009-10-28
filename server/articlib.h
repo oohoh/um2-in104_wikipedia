@@ -3,7 +3,7 @@
 
 struct line {
   char character[255];
-  struct content *next;
+  struct line *next;
 };
 
 struct article {
