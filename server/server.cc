@@ -41,13 +41,19 @@ int main(int argc, char *argv[]){
   socklen_t lgBrCv=sizeof(struct sockaddr_in);
 
   descBrCv=accept(descBrPub,(struct sockaddr *)&brCv,&lgBrCv);
-  char lemagne[256];
-  char lot[]="doremifa solasido";
-  int ensif=recv(descBrCv,lemagne,sizeof(lemagne),0);
-  fprintf(stdout, "Charlemagne=%s strlen(charlemagne)=%d",
-	  lemagne, strlen(lemagne));
-  fprintf(stdout, "lot=%s strlen(lot)=%d",
-	  lot, strlen(lot));
-  int ox = send(descBrCv,lot,strlen(lot),0);
+
+//contenant de reception	
+  char recu[256];
+
+//contenant d'envoi
+  char reponse[]="doremifa solasido";
+
+//on recoit
+  int resR = recv(descBrCv,recu,sizeof(recu),0);
+ 
+//on envoit/repond
+  int resS = send(descBrCv,reponse,strlen(reponse),0);
   
 }
+
+
