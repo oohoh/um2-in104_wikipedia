@@ -46,7 +46,7 @@ int main(int argc, char *argv[]){
   char recu[256];
 
 //contenant d'envoi
-  char reponse[]="doremifa solasido";
+  char reponse[256]="doremifa solasido";
 
 //on recoit
   int resR = recv(descBrCv,recu,sizeof(recu),0);
