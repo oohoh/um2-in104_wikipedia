@@ -10,16 +10,23 @@
 using namespace std;
 
 int main(int argc, char *argv[]){
+  /*declaration des variables*/
+  /*-buffers*/
+
+  /*-descripteurs*/
+  int descBrPub;
+  int descBrCv;
+
   /*definition du port de la br publique*/
   if(argv[1]==NULL){
-    argv[1]="21345";
+    argv[1]=(char*)"21345";
   }
 
   /*demande de br publique*/
   Sock brPub(SOCK_STREAM,atoi(argv[1]),0);
 
   if (brPub.good()){
-    int descBrPub=brPub.getsDesc();
+    descBrPub=brPub.getsDesc();
   }else{
     perror("--recuperation descBrPub");
     exit(4);
@@ -33,7 +40,7 @@ int main(int argc, char *argv[]){
   struct sockaddr_in brCv;
   socklen_t lgBrCv=sizeof(struct sockaddr_in);
 
-  int descBrCv=accept(descBrPub,(struct sockaddr *)&brCv,&lgBrCv);
+  descBrCv=accept(descBrPub,(struct sockaddr *)&brCv,&lgBrCv);
   char lemagne[256];
   char lot[]="doremifa solasido";
   int ensif=recv(descBrCv,lemagne,sizeof(lemagne),0);
