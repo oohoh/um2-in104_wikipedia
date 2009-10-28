@@ -51,7 +51,10 @@ int main(int argc, char *argv[]){
 //on recoit
   int resR = recv(descBrCv,recu,sizeof(recu),0);
  
+cout<<"message recu: "<<recu<<endl<<endl;
+
 //on envoit/repond
+
   int resS = send(descBrCv,reponse,strlen(reponse),0);
   
 }
