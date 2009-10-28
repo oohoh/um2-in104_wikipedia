@@ -1,6 +1,6 @@
-all:		server clean
+all:		main clean
 
-server:		server.o sock.o sockdist.o
+main:		server.o sock.o sockdist.o
 		g++ -lpthread -o server server.o sock.o sockdist.o
 
 sock.o:		sock.cc

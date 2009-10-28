@@ -1,6 +1,6 @@
-all:		client
+all:		main clean
 
-client:		client.o sock.o sockdist.o
+main:		client.o sock.o sockdist.o
 		g++ -o client client.o sock.o sockdist.o
 
 sock.o:		sock.cc

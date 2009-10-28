@@ -41,10 +41,10 @@ int main(int argc, char *argv[]){
 cout<<"res du connect: "<<boolConnect<<endl;
 
 //message a envoyer
-  char envoi[256]="potato";
+  char envoi[255]="potato";
 
 //message/reponse a recevoir
-  char recu[256]="";
+  char recu[255]="";
  
 //on envoi
   int resS = send(descBrCli,envoi,strlen(envoi),0);

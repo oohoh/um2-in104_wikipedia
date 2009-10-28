@@ -7,6 +7,7 @@
 
 #include "sock.h"
 #include "sockdist.h"
+#include "articlib.h"
 
 using namespace std;
 
@@ -16,7 +17,7 @@ void *actConnectClient (void * par){
   cout<<"activite"<<idThread<<"dans proc."<<getpid()<<endl;
 
   //contenant de reception	
-  char recu[256];
+  char recu[255]="";
 
   //on recoit
   int resR = recv(*descBrCv,recu,sizeof(recu),0);
@@ -24,7 +25,7 @@ void *actConnectClient (void * par){
   cout<<"message recu: "<<recu<<endl<<endl;
 
   //contenant d'envoi
-  char reponse[256]="j'ai recu le message: ";
+  char reponse[255]="j'ai recu le message: ";
   strcat(reponse,recu);
 
   //on envoit/repond
