@@ -1,3 +1,4 @@
+#include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -41,12 +42,15 @@ int main(int argc, char *argv[]){
 
 //message/reponse a recevoir
   char *recu;
-
-//on recoit
-  int resR = recv(descBrCli,recu,sizeof(recu),0);
  
 //on envoi
   int resS = send(descBrCli,envoi,strlen(envoi),0);
+
+//on recoit
+  int resR = recv(descBrCli,recu,sizeof(recu),0);
+
+
+cout<<"reponse du serveur: "<<recu<<endl<<endl;
 
   return 0;
 }
