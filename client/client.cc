@@ -14,8 +14,9 @@ using namespace std;
 int main(int argc, char *argv[]){
   /*definition de l'adresse de la br publique*/
   if(argv[1]==NULL){
-    argv[1]="localhost";
+    argv[1]=(char*)"localhost";
   }
+
 
   /*definition du port de la br publique*/
   if(argv[2]==NULL){
@@ -37,11 +38,13 @@ int main(int argc, char *argv[]){
 
   int boolConnect = connect(descBrCli,(struct sockaddr *)adrBrPub,lgAdrBrPub);
   
+cout<<"res du connect: "<<boolConnect<<endl;
+
 //message a envoyer
   char envoi[256]="undeux troisquatre cinq pfiou c'est trop long";
 
 //message/reponse a recevoir
-  char *recu;
+  char *recu = new char[256];
  
 //on envoi
   int resS = send(descBrCli,envoi,strlen(envoi),0);
