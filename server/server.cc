@@ -93,23 +93,10 @@ void *actConnectClient (void * par){
 
 /*demande de nouveau br publique*/
 
-int descBrPub2;
-Sock brPub(SOCK_STREAM,brgen,0);
-
-
-  if (brPub.good()){
-    descBrPub2=brPub.getsDesc();
-  }else{
-    perror("--recuperation descBrPub");
-    exit(4);
-  }
-
-//switch des boite reseaux
-Sock bind(*descBrCv,brgen);
 
 //incremente boite reseau generator
 brgen++;
-
+cout<<"br generateur: "<<brgen<<endl;
 
 
 
