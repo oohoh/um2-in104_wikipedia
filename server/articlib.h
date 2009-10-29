@@ -11,7 +11,7 @@ struct article {
   char author[255];
   time_t create;
   time_t modify;
-  struct line *content;
+  char content[255];
 };
 
 #endif
