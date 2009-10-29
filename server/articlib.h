@@ -2,15 +2,15 @@
 #define _ARTICLIB_H
 
 struct line {
-  char character[255];
+  char text[255];
   struct line *next;
 };
 
 struct article {
   char title[255];
-  char autor[255];
-  struct tm *create;
-  struct tm *modify;
+  char author[255];
+  time_t create;
+  time_t modify;
   struct line *content;
 };
 
