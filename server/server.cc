@@ -14,63 +14,33 @@
 using namespace std;
 
 
-/*void printArticle(struct article *art){
+void printArticle(struct article *art){
   cout<<endl<<endl;
-  cout<<"Title : "<<art->title<<endl;
-  cout<<"Author : "<<art->author<<endl;
-  cout<<"Create : "<<ctime(&art->create);
-  cout<<"Modify : "<<ctime(&art->modify);
-  cout<<"Content :"<<art->content<<endl;
+  cout<<"Titre : "<<art->title<<endl;
+  cout<<"Auteur : "<<art->author<<endl;
+  cout<<"Contenu :"<<art->content<<endl;
+  cout<<"Date de Creation : "<<ctime(&art->create);
+  cout<<"Date de dernier modif : "<<ctime(&art->modify);
+ 
 }
-*/
 
 
-/*void createArticle(){
-  struct article art1;
-  cout<<"title:";
-  cin.getline(art1.title,255);
-  cout<<"author:";
-  cin.getline(art1.author,255);
-  cout<<"content:";
-  cin.getline(art1.content,255);
-  art1.create=time(NULL);
-  art1.modify=time(NULL);
-  printArticle(&art1);
-}
-*/
 
-void *actConnectClient (void * par){
-  int *descBrCv=(int *)par;
-  pthread_t idThread=pthread_self();
-  cout<<"activite: "<<idThread<<" dans proc: "<<getpid()<<endl;
+void createArticle(int * descBrCv){
+  //contenant de reception	
 
-
-//contenant de reception	
-char recu[255]="";
 char recu1[255]="";
 char recu2[255]="";
 char recu3[255]="";
 
 //contenant de reponse
-char reponse[255]="";
+
 char reponse1[255]="";
 char reponse2[255]="";
 char reponse3[255]="";
-//Envoi de liste d'options:
-strcat(reponse,"press 1 to - create article");
-
-int resS = send(*descBrCv,reponse,strlen(reponse),0);
-
-//on recupere le choix
 
 
 
-  //on recoit l'option choisit
-  int resR = recv(*descBrCv,recu,sizeof(recu),0);
-
-
-  if(strcmp(recu,"1")==0)
-	{
 	struct article art1;
 	strcpy(reponse1,"Creation d'un Article\nSaisir le titre de l'article: ");
 	
@@ -105,21 +75,44 @@ int resS = send(*descBrCv,reponse,strlen(reponse),0);
 	strcpy(art1.content,recu3);
 
 	cout<<"Article cree: "<<endl;
-	cout<<"Titre: "<<art1.title<<endl;
-	cout<<"Auteur: "<<art1.author<<endl;
-	cout<<"Contenu: "<<art1.content<<endl;
-	cout<<"Date Creation: "<<ctime(&art1.create);
-	cout<<"Date de dernier modif: "<<ctime(&art1.modify);
+	printArticle(&art1);	
 	
-	}
+	
 
+}
+
+
+void *actConnectClient (void * par){
+  int *descBrCv=(int *)par;
+  pthread_t idThread=pthread_self();
+  cout<<"activite: "<<idThread<<" dans proc: "<<getpid()<<endl;
+
+char recu[255]="";
+char reponse[255]="";
+
+//Envoi de liste d'options:
+strcat(reponse,"press 1 to - create article\npress 2 to - list current articles");
+
+int resS = send(*descBrCv,reponse,strlen(reponse),0);
+
+//on recoit l'option choisit
+int resR = recv(*descBrCv,recu,sizeof(recu),0);
+
+
+  if(strcmp(recu,"1")==0)
+	{
+	createArticle(descBrCv);
+	}
 	
  pthread_exit(NULL);
 }
 
 
 int main(int argc, char *argv[]){
-  /*declaration des variables*/
+/*declaration des variables*/
+
+
+
   /*-shared memory*/
   int shmid;
   key_t shmkey;
@@ -178,6 +171,7 @@ int main(int argc, char *argv[]){
       perror("--acceptation descBrCv");
       sleep(5);
     }else{
+	
       if(pthread_create(&idConnexion,NULL,actConnectClient,&descBrCv)!=0){
 	perror("--creation thread");
       }
