@@ -40,22 +40,67 @@ int main(int argc, char *argv[]){
   
 cout<<"res du connect: "<<boolConnect<<endl;
 
-//message a envoyer
-  char envoi[255]="potato";
-
-//message/reponse a recevoir
-  char recu[255]="";
- 
-//on envoi
-  int resS = send(descBrCli,envoi,strlen(envoi),0);
-
-//on recoit
-  int resR = recv(descBrCli,recu,sizeof(recu),0);
+//Contenant d'envoi
+char envoi[255]="";
+char envoi1[255]="";
+char envoi2[255]="";
+char envoi3[255]="";
 
 
-cout<<"reponse du serveur: "<<recu<<endl<<endl;
+//Contenant de reception
+char recu[255]="";
+char recu1[255]="";
+char recu2[255]="";
+char recu3[255]="";
 
 
+//on recoit les options
+  int resR = recv(descBrCli,recu,sizeof(recu),0); 
+//affiche reception
+cout<<recu<<endl;
+//prepare a input
+
+char * input=new char[255];
+char * input1=new char[255];
+char * input2=new char[255];
+char * input3=new char[255];
+
+cin.getline(input,255);
+
+//on envoit notre choix
+if(strcmp(input,"1")==0)
+	{
+	strcat(envoi,input);
+	int resS = send(descBrCli,envoi,strlen(envoi),0);
+
+	//on recoit saisir titre
+	int resR2 = recv(descBrCli,recu1,sizeof(recu1),0);
+	cout<<recu1;
+	//input titre
+	cin.getline(input1,255);
+	strcpy(envoi1,input1);
+	//envoi titre
+	int resS2 = send(descBrCli,envoi1,strlen(envoi1),0);
+
+	//recoit saisir auteur
+	int resR3 = recv(descBrCli,recu2,sizeof(recu2),0);
+	cout<<recu2;
+	//input auteur
+	cin.getline(input2,255);
+	strcpy(envoi2,input2);
+	//envoi auteur
+	int resS3 = send(descBrCli,envoi2,strlen(envoi2),0);
+
+
+	//recoit saisir contenu
+	int resR4 = recv(descBrCli,recu3,sizeof(recu3),0);
+	cout<<recu3;
+	//input contenu
+	cin.getline(input3,255);
+	strcpy(envoi3,input3);
+	//envoi contenu
+	int resS4 = send(descBrCli,envoi3,strlen(envoi3),0);
+	}
 
   return 0;
 }
