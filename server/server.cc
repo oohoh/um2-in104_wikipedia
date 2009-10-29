@@ -14,7 +14,7 @@
 using namespace std;
 
 
-void printArticle(struct article *art){
+/*void printArticle(struct article *art){
   cout<<endl<<endl;
   cout<<"Title : "<<art->title<<endl;
   cout<<"Author : "<<art->author<<endl;
@@ -22,9 +22,10 @@ void printArticle(struct article *art){
   cout<<"Modify : "<<ctime(&art->modify);
   cout<<"Content :"<<art->content<<endl;
 }
+*/
 
 
-void createArticle(){
+/*void createArticle(){
   struct article art1;
   cout<<"title:";
   cin.getline(art1.title,255);
@@ -36,29 +37,84 @@ void createArticle(){
   art1.modify=time(NULL);
   printArticle(&art1);
 }
-
+*/
 
 void *actConnectClient (void * par){
   int *descBrCv=(int *)par;
   pthread_t idThread=pthread_self();
-  cout<<"activite"<<idThread<<"dans proc."<<getpid()<<endl;
+  cout<<"activite: "<<idThread<<" dans proc: "<<getpid()<<endl;
 
-  //contenant de reception	
-  char recu[255]="";
 
-  //on recoit
+//contenant de reception	
+char recu[255]="";
+char recu1[255]="";
+char recu2[255]="";
+char recu3[255]="";
+
+//contenant de reponse
+char reponse[255]="";
+char reponse1[255]="";
+char reponse2[255]="";
+char reponse3[255]="";
+//Envoi de liste d'options:
+strcat(reponse,"press 1 to - create article");
+
+int resS = send(*descBrCv,reponse,strlen(reponse),0);
+
+//on recupere le choix
+
+
+
+  //on recoit l'option choisit
   int resR = recv(*descBrCv,recu,sizeof(recu),0);
- 
-  cout<<"message recu: "<<recu<<endl<<endl;
 
-  //contenant d'envoi
-  char reponse[255]="j'ai recu le message: ";
-  strcat(reponse,recu);
 
-  //on envoit/repond
-  int resS = send(*descBrCv,reponse,strlen(reponse),0);
+  if(strcmp(recu,"1")==0)
+	{
+	struct article art1;
+	strcpy(reponse1,"Creation d'un Article\nSaisir le titre de l'article: ");
+	
+	//on envoit saisir titre
+  	int resS2 = send(*descBrCv,reponse1,strlen(reponse1),0);
+	
+	//date de creation	
+	art1.create=time(NULL);
+	//date de modif
+        art1.modify=time(NULL);
+	
+	//recoit titre
+	int resR2 = recv(*descBrCv,recu1,sizeof(recu1),0);
+	strcpy(art1.title,recu1);
+	
+	//envoi saisir auteur
+	
+	strcpy(reponse2,"Saisir auteur: ");
+	int resS3 = send(*descBrCv,reponse2,strlen(reponse2),0);
+	
+	//recoit auteur
+	int resR3 = recv(*descBrCv,recu2,sizeof(recu2),0);
+	strcpy(art1.author,recu2);
 
-  pthread_exit(NULL);
+
+	//envoi saisir contenu
+	strcpy(reponse3,"Saisir contenu: ");
+	int resS4 = send(*descBrCv,reponse3,strlen(reponse3),0);
+	
+	//recoit contenu
+	int resR4 = recv(*descBrCv,recu3,sizeof(recu3),0);
+	strcpy(art1.content,recu3);
+
+	cout<<"Article cree: "<<endl;
+	cout<<"Titre: "<<art1.title<<endl;
+	cout<<"Auteur: "<<art1.author<<endl;
+	cout<<"Contenu: "<<art1.content<<endl;
+	cout<<"Date Creation: "<<ctime(&art1.create);
+	cout<<"Date de dernier modif: "<<ctime(&art1.modify);
+	
+	}
+
+	
+ pthread_exit(NULL);
 }
 
 
@@ -90,7 +146,8 @@ int main(int argc, char *argv[]){
   cout<<"shmid="<<shmid<<endl;
   shmat(shmid,NULL,0666);
 
-  createArticle();
+  //createArticle();
+
   /*definition du port de la br publique*/
   if(argv[1]==NULL){
     argv[1]=(char*)"21345";
