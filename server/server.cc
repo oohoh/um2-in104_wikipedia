@@ -1,4 +1,5 @@
 #include <iostream>
+#include <sstream>
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
@@ -81,11 +82,36 @@ char reponse3[255]="";
 
 }
 
+//boite reseau generateur indice
+int brgen=22345;
 
 void *actConnectClient (void * par){
   int *descBrCv=(int *)par;
   pthread_t idThread=pthread_self();
   cout<<"activite: "<<idThread<<" dans proc: "<<getpid()<<endl;
+
+
+/*demande de nouveau br publique*/
+
+int descBrPub2;
+Sock brPub(SOCK_STREAM,brgen,0);
+
+
+  if (brPub.good()){
+    descBrPub2=brPub.getsDesc();
+  }else{
+    perror("--recuperation descBrPub");
+    exit(4);
+  }
+
+//switch des boite reseaux
+Sock bind(*descBrCv,brgen);
+
+//incremente boite reseau generator
+brgen++;
+
+
+
 
 char recu[255]="";
 char reponse[255]="";
@@ -139,7 +165,7 @@ int main(int argc, char *argv[]){
   cout<<"shmid="<<shmid<<endl;
   shmat(shmid,NULL,0666);
 
-  //createArticle();
+  
 
   /*definition du port de la br publique*/
   if(argv[1]==NULL){
@@ -168,7 +194,7 @@ int main(int argc, char *argv[]){
     /*acceptation de la connexion*/
     descBrCv=accept(descBrPub,(struct sockaddr *)&brCv,&lgBrCv);
     if(descBrCv==-1){
-      perror("--acceptation descBrCv");
+      perror("--acceptation descBrCv");			
       sleep(5);
     }else{
 	
