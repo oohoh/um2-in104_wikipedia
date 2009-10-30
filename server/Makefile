@@ -1,4 +1,4 @@
-all:		main clean
+all:		clean main
 
 main:		server.o sock.o sockdist.o
 		g++ -lpthread -o server server.o sock.o sockdist.o

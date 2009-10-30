@@ -114,7 +114,7 @@ void createArticle(int *descBrCv){
 
 void *actConnectClient (void *par){
   //initialisation du thread
-  int *descBrCv=(int *)par;
+  int descBrCv=*(int*)par;
   pthread_t idThread=pthread_self();
   cout<<"activite: "<<idThread<<" dans proc: "<<getpid()<<endl;
 
@@ -133,7 +133,7 @@ void *actConnectClient (void *par){
   //Envoi de liste d'options:
   initTab(buffer,sBuffer);
   strcat(buffer,"press 1 to - create article\npress 2 to - list current articles");
-  vSend=send(*descBrCv,buffer,strlen(buffer),0);
+  vSend=send(descBrCv,buffer,strlen(buffer),0);
   if(vSend==-1){
     perror("--send");
     exit(1);
@@ -141,14 +141,14 @@ void *actConnectClient (void *par){
 
   //on recoit l'option choisit
   initTab(buffer,sBuffer);
-  vRecv=recv(*descBrCv,buffer,sizeof(buffer),0);
+  vRecv=recv(descBrCv,buffer,sizeof(buffer),0);
   if(vRecv==-1){
     perror("--receive");
     exit(1);
   }
 
   if(strcmp(buffer,"article create")==0){
-    createArticle(descBrCv);
+    createArticle(&descBrCv);
   }
 
   pthread_exit(NULL);
@@ -205,12 +205,13 @@ int main(int argc, char *argv[]){
     perror("--listen");
     exit(5);
   }
-  struct sockaddr_in brCv;
-  socklen_t lgBrCv=sizeof(struct sockaddr_in);
+  struct sockaddr brCv;
+  socklen_t lgBrCv=sizeof(struct sockaddr);
 
   while(true){
     /*acceptation de la connexion*/
     descBrCv=accept(descBrPub,(struct sockaddr *)&brCv,&lgBrCv);
+    cout<<"descBrCv="<<descBrCv<<endl;
     if(descBrCv==-1){
       perror("--acceptation descBrCv");			
       sleep(5);

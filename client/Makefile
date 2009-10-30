@@ -1,4 +1,4 @@
-all:		main clean
+all:		clean main
 
 main:		client.o sock.o sockdist.o
 		g++ -o client client.o sock.o sockdist.o
