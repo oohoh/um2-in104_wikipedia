@@ -105,7 +105,7 @@ int main(int argc, char *argv[]){
 
   int vConnect=connect(descBrCli,(struct sockaddr *)adrBrPub,lgAdrBrPub);
   
-  cout<<"res du connect: "<<boolConnect<<endl;
+  cout<<"res du connect: "<<vConnect<<endl;
 
   //Contenant d'envoi
   char buffer[255];
