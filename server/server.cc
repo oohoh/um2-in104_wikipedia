@@ -15,117 +15,148 @@
 using namespace std;
 
 
-void printArticle(struct article *art){
-  cout<<endl<<endl;
-  cout<<"Titre : "<<art->title<<endl;
-  cout<<"Auteur : "<<art->author<<endl;
-  cout<<"Contenu :"<<art->content<<endl;
-  cout<<"Date de Creation : "<<ctime(&art->create);
-  cout<<"Date de dernier modif : "<<ctime(&art->modify);
- 
+void initTab(char t[],int size){
+  for(int i=0;i<size;i++){
+    t[i]='\0';
+  }
+}
+
+void printArticle(int *descBrCv,struct article *art){
+  char artBuff[1023];
+  int vSend;
+
+  //initialisation du buffer d'envoie
+  initTab(artBuff,sizeof(artBuff));
+
+  //ajout du titre
+  strcat(artBuff,"Titre : ");
+  strcat(artBuff,art->title);
+  strcat(artBuff,"\n");
+
+  //ajout de l'auteur
+  strcat(artBuff,"Auteur : ");
+  strcat(artBuff,art->author);
+  strcat(artBuff,"\n");
+
+  //ajout de la date de creation
+  strcat(artBuff,"Creation : ");
+  strcat(artBuff,ctime(&art->create));
+
+  //ajout de la date de derniere modification
+  strcat(artBuff,"Modification : ");
+  strcat(artBuff,ctime(&art->modify));
+
+  //ajout du contenu
+  strcat(artBuff,"Contenu : ");
+  strcat(artBuff,art->content);
+  strcat(artBuff,"\n");
+
+  //envoie de l'article
+  vSend=send(*descBrCv,artBuff,strlen(artBuff),0);
 }
 
 
+void createArticle(int *descBrCv){
+  //recepteur de la valeur des send et recv
+  int vSend, vRecv;
 
-void createArticle(int * descBrCv){
-  //contenant de reception	
+  //definition de l'article
+  struct article art;
 
-char recu1[255]="";
-char recu2[255]="";
-char recu3[255]="";
+  //buffer
+  char buffer[255];
 
-//contenant de reponse
+  //on envoit saisir titre
+  initTab(buffer,sizeof(buffer));
+  strcpy(buffer,"Creation d'un Article\nSaisir le titre de l'article: ");
+  vSend=send(*descBrCv,buffer,strlen(buffer),0);
 
-char reponse1[255]="";
-char reponse2[255]="";
-char reponse3[255]="";
+  //recoit titre
+  initTab(buffer,sizeof(buffer));
+  vRecv=recv(*descBrCv,buffer,sizeof(buffer),0);
+  strcpy(art.title,buffer);
 
+  //envoi saisir auteur
+  initTab(buffer,sizeof(buffer));
+  strcpy(buffer,"Saisir auteur: ");
+  vSend=send(*descBrCv,buffer,strlen(buffer),0);
 
+  //recoit auteur
+  initTab(buffer,sizeof(buffer));
+  vRecv=recv(*descBrCv,buffer,sizeof(buffer),0);
+  strcpy(art.author,buffer);
 
-	struct article art1;
-	strcpy(reponse1,"Creation d'un Article\nSaisir le titre de l'article: ");
+  //envoi saisir contenu
+  initTab(buffer,sizeof(buffer));
+  strcpy(buffer,"Saisir contenu: ");
+  vSend=send(*descBrCv,buffer,strlen(buffer),0);
 	
-	//on envoit saisir titre
-  	int resS2 = send(*descBrCv,reponse1,strlen(reponse1),0);
-	
-	//date de creation	
-	art1.create=time(NULL);
-	//date de modif
-        art1.modify=time(NULL);
-	
-	//recoit titre
-	int resR2 = recv(*descBrCv,recu1,sizeof(recu1),0);
-	strcpy(art1.title,recu1);
-	
-	//envoi saisir auteur
-	
-	strcpy(reponse2,"Saisir auteur: ");
-	int resS3 = send(*descBrCv,reponse2,strlen(reponse2),0);
-	
-	//recoit auteur
-	int resR3 = recv(*descBrCv,recu2,sizeof(recu2),0);
-	strcpy(art1.author,recu2);
+  //recoit contenu
+  initTab(buffer,sizeof(buffer));
+  vRecv=recv(*descBrCv,buffer,sizeof(buffer),0);
+  strcpy(art.content,buffer);
 
+  //date de creation	
+  art.create=time(NULL);
 
-	//envoi saisir contenu
-	strcpy(reponse3,"Saisir contenu: ");
-	int resS4 = send(*descBrCv,reponse3,strlen(reponse3),0);
-	
-	//recoit contenu
-	int resR4 = recv(*descBrCv,recu3,sizeof(recu3),0);
-	strcpy(art1.content,recu3);
+  //date de modif
+  art.modify=time(NULL);
 
-	cout<<"Article cree: "<<endl;
-	printArticle(&art1);	
-	
-	
+  //envoi du message de fin de procedure
+  initTab(buffer,sizeof(buffer));
+  strcpy(buffer,"#done");
+  vSend=send(*descBrCv,buffer,strlen(buffer),0);
 
+  cout<<"Article cree"<<endl;
+  printArticle(descBrCv,&art);	
 }
 
-//boite reseau generateur indice
-int brgen=22345;
 
-void *actConnectClient (void * par){
+void *actConnectClient (void *par){
+  //initialisation du thread
   int *descBrCv=(int *)par;
   pthread_t idThread=pthread_self();
   cout<<"activite: "<<idThread<<" dans proc: "<<getpid()<<endl;
 
+  //recepteur de la valeur des send et recv
+  int vSend, vRecv;
 
-/*demande de nouveau br publique*/
+  //creation du buffer
+  char buffer[255];
+  int sBuffer=sizeof(buffer);
 
+  /*generation de numero de port aleatoire*/
+  srand(time(NULL));
+  int port=21346+(rand()%97);
+  cout<<"new thread --port:"<<port<<endl;
 
-//incremente boite reseau generator
-brgen++;
-cout<<"br generateur: "<<brgen<<endl;
+  //Envoi de liste d'options:
+  initTab(buffer,sBuffer);
+  strcat(buffer,"press 1 to - create article\npress 2 to - list current articles");
+  vSend=send(*descBrCv,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
 
+  //on recoit l'option choisit
+  initTab(buffer,sBuffer);
+  vRecv=recv(*descBrCv,buffer,sizeof(buffer),0);
+  if(vRecv==-1){
+    perror("--receive");
+    exit(1);
+  }
 
+  if(strcmp(buffer,"article create")==0){
+    createArticle(descBrCv);
+  }
 
-char recu[255]="";
-char reponse[255]="";
-
-//Envoi de liste d'options:
-strcat(reponse,"press 1 to - create article\npress 2 to - list current articles");
-
-int resS = send(*descBrCv,reponse,strlen(reponse),0);
-
-//on recoit l'option choisit
-int resR = recv(*descBrCv,recu,sizeof(recu),0);
-
-
-  if(strcmp(recu,"1")==0)
-	{
-	createArticle(descBrCv);
-	}
-	
- pthread_exit(NULL);
+  pthread_exit(NULL);
 }
 
 
 int main(int argc, char *argv[]){
-/*declaration des variables*/
-
-
-
+  /*declaration des variables*/
   /*-shared memory*/
   int shmid;
   key_t shmkey;

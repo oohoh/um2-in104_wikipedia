@@ -11,6 +11,73 @@
 
 using namespace std;
 
+
+void initTab(char t[],int size){
+  for(int i=0;i<size;i++){
+    t[i]='\0';
+  }
+}
+
+
+void printArticle(int *descBrCli){
+  int vRecv;
+  char artBuff[1023];
+  int sArtBuff=sizeof(artBuff);
+
+  //initialisation du buff de reception
+  initTab(artBuff,sArtBuff);
+
+  //reception de l'article
+  vRecv=recv(*descBrCli,artBuff,sArtBuff,0);
+  if(vRecv==-1){
+    perror("--receive");
+    exit(1);
+  }
+
+  //affichage de l'article
+  cout<<artBuff<<endl;
+}
+
+void createArticle(int *descBrCli){
+  int vSend, vRecv;
+   
+  //buffer
+  char buffer[255];
+  int sBuffer=sizeof(buffer);
+  char input[255];
+  int sInput=sizeof(input);
+
+  //envoie demande creation article
+  initTab(buffer,sBuffer);
+  strcpy(buffer,"article create");
+  vSend=send(*descBrCli,buffer,strlen(buffer),0);
+
+  //saisie et envoie du titre
+  while(strcmp(buffer,"#done")){
+    initTab(buffer,sBuffer);
+    vRecv=recv(*descBrCli,buffer,sBuffer,0);
+    if(vRecv==-1){
+      perror("--receive");
+      exit(1);
+    }
+    if(strcmp(buffer,"#done")!=0){
+      cout<<buffer;
+      initTab(input,sInput);
+      cin.getline(input,sInput);
+      strcpy(buffer,input);
+      vSend=send(*descBrCli,buffer,strlen(buffer),0);
+      if(vSend==-1){
+	perror("--send");
+	exit(1);
+      }
+    }
+  }
+
+  //affichage de l'article
+  printArticle(descBrCli);
+}
+
+
 int main(int argc, char *argv[]){
   /*definition de l'adresse de la br publique*/
   if(argv[1]==NULL){
@@ -36,73 +103,29 @@ int main(int argc, char *argv[]){
 
   int lgAdrBrPub=sizeof(struct sockaddr_in);
 
-  int boolConnect = connect(descBrCli,(struct sockaddr *)adrBrPub,lgAdrBrPub);
+  int vConnect=connect(descBrCli,(struct sockaddr *)adrBrPub,lgAdrBrPub);
   
-cout<<"res du connect: "<<boolConnect<<endl;
+  cout<<"res du connect: "<<boolConnect<<endl;
 
-//Contenant d'envoi
-char envoi[255]="";
-char envoi1[255]="";
-char envoi2[255]="";
-char envoi3[255]="";
+  //Contenant d'envoi
+  char buffer[255];
+  char artBuff[1023];
 
 
-//Contenant de reception
-char recu[255]="";
-char recu1[255]="";
-char recu2[255]="";
-char recu3[255]="";
+  //on recoit les options
+  int resR = recv(descBrCli,buffer,sizeof(buffer),0); 
+  //affiche reception
+  cout<<buffer<<endl;
+  //prepare a input
 
+  char input[255];
 
-//on recoit les options
-  int resR = recv(descBrCli,recu,sizeof(recu),0); 
-//affiche reception
-cout<<recu<<endl;
-//prepare a input
+  cin.getline(input,255);
 
-char * input=new char[255];
-char * input1=new char[255];
-char * input2=new char[255];
-char * input3=new char[255];
-
-cin.getline(input,255);
-
-//on envoit notre choix
-if(strcmp(input,"1")==0)
-	{
-	strcat(envoi,input);
-	int resS = send(descBrCli,envoi,strlen(envoi),0);
-
-	//on recoit saisir titre
-	int resR2 = recv(descBrCli,recu1,sizeof(recu1),0);
-	cout<<recu1;
-	//input titre
-	cin.getline(input1,255);
-	strcpy(envoi1,input1);
-	//envoi titre
-	int resS2 = send(descBrCli,envoi1,strlen(envoi1),0);
-
-	//recoit saisir auteur
-	int resR3 = recv(descBrCli,recu2,sizeof(recu2),0);
-	cout<<recu2;
-	//input auteur
-	cin.getline(input2,255);
-	strcpy(envoi2,input2);
-	//envoi auteur
-	int resS3 = send(descBrCli,envoi2,strlen(envoi2),0);
-
-
-	//recoit saisir contenu
-	int resR4 = recv(descBrCli,recu3,sizeof(recu3),0);
-	cout<<recu3;
-	//input contenu
-	cin.getline(input3,255);
-	strcpy(envoi3,input3);
-	//envoi contenu
-	int resS4 = send(descBrCli,envoi3,strlen(envoi3),0);
-	}
-
-  return 0;
+  //on envoit notre choix
+  if(strcmp(input,"1")==0){
+    createArticle(&descBrCli);
+  }
 }
 
 
