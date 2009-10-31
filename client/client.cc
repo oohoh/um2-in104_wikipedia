@@ -38,14 +38,108 @@ void printArticle(int *descBrCli){
   cout<<artBuff<<endl;
 }
 
-void createArticle(int *descBrCli){
+void modifyArticle(int *descBrCli){
+  //recepteur de la valeur des send et recv
   int vSend, vRecv;
    
   //buffer
   char buffer[255];
   int sBuffer=sizeof(buffer);
-  char input[255];
-  int sInput=sizeof(input);
+
+  //reception de l'entete de la version actuelle de l'article
+  initTab(buffer,sBuffer);
+  vRecv=recv(*descBrCli,buffer,sBuffer,0);
+  if(vRecv==-1){
+    perror("--receive");
+    exit(1);
+  }
+  cout<<buffer<<endl;
+
+  //envoie message de synchronisation
+  initTab(buffer,sBuffer);
+  strcpy(buffer,"#sync");
+  vSend=send(*descBrCli,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
+
+  //reception de la version actuelle de l'article
+  printArticle(descBrCli);
+
+  //envoie message de synchronisation
+  initTab(buffer,sBuffer);
+  strcpy(buffer,"#sync");
+  vSend=send(*descBrCli,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
+
+  //reception demande modification du titre
+  initTab(buffer,sBuffer);
+  vRecv=recv(*descBrCli,buffer,sBuffer,0);
+  if(vRecv==-1){
+    perror("--receive");
+    exit(1);
+  }
+  cout<<buffer;
+
+  //envoie modification du titre
+  initTab(buffer,sBuffer);
+  cin.getline(buffer,sBuffer);
+  vSend=send(*descBrCli,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
+
+  //reception demande modification du contenu
+  initTab(buffer,sBuffer);
+  vRecv=recv(*descBrCli,buffer,sBuffer,0);
+  if(vRecv==-1){
+    perror("--receive");
+    exit(1);
+  }
+  cout<<buffer;
+
+  //envoie modification du contenu
+  initTab(buffer,sBuffer);
+  cin.getline(buffer,sBuffer);
+  vSend=send(*descBrCli,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
+
+  //reception de l'entete d'affichage de l'article modifie
+  initTab(buffer,sBuffer);
+  vRecv=recv(*descBrCli,buffer,sBuffer,0);
+  if(vRecv==-1){
+    perror("--receive");
+    exit(1);
+  }
+  cout<<buffer;
+
+  //envoie modification du contenu
+  initTab(buffer,sBuffer);
+  strcpy(buffer,"#sync");
+  vSend=send(*descBrCli,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
+
+  printArticle(descBrCli);
+}
+
+void createArticle(int *descBrCli){
+  //recepteur de la valeur des send et recv
+  int vSend, vRecv;
+   
+  //buffer
+  char buffer[255];
+  int sBuffer=sizeof(buffer);
 
   //envoie demande creation article
   initTab(buffer,sBuffer);
@@ -62,9 +156,8 @@ void createArticle(int *descBrCli){
     }
     if(strcmp(buffer,"#done")!=0){
       cout<<buffer;
-      initTab(input,sInput);
-      cin.getline(input,sInput);
-      strcpy(buffer,input);
+      initTab(buffer,sBuffer);
+      cin.getline(buffer,sBuffer);
       vSend=send(*descBrCli,buffer,strlen(buffer),0);
       if(vSend==-1){
 	perror("--send");
@@ -74,7 +167,8 @@ void createArticle(int *descBrCli){
   }
 
   //affichage de l'article
-  printArticle(descBrCli);
+  //printArticle(descBrCli);
+  modifyArticle(descBrCli);
 }
 
 

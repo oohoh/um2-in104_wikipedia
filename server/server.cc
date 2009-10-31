@@ -53,8 +53,106 @@ void printArticle(int *descBrCv,struct article *art){
 
   //envoie de l'article
   vSend=send(*descBrCv,artBuff,strlen(artBuff),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
 }
 
+void modifyArticle(int *descBrCv,struct article *art){
+  //recepteur de la valeur des send et recv
+  int vSend, vRecv;
+
+  //buffer
+  char buffer[255];
+  int sBuffer=sizeof(buffer);
+
+  //envoie de l'entete de la  version actuelle de l'article
+  initTab(buffer,sBuffer);
+  strcpy(buffer,"\nModification de l'article");
+  vSend=send(*descBrCv,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
+
+  //reception message de synchronisation
+  initTab(buffer,sBuffer);
+  vRecv=recv(*descBrCv,buffer,sBuffer,0);
+  if(vRecv==-1){
+    perror("--receive");
+    exit(1);
+  }
+
+  //envoie de la version actuelle de l'article
+  printArticle(descBrCv,art);
+
+  //reception message de synchronisation
+  initTab(buffer,sBuffer);
+  vRecv=recv(*descBrCv,buffer,sBuffer,0);
+  if(vRecv==-1){
+    perror("--receive");
+    exit(1);
+  }
+
+  //envoie demande modification du titre
+  initTab(buffer,sBuffer);
+  strcpy(buffer,"Nouveau titre : ");
+  vSend=send(*descBrCv,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
+
+  //reception des modification du titre
+  initTab(buffer,sBuffer);
+  vRecv=recv(*descBrCv,buffer,sBuffer,0);
+  if(vRecv==-1){
+    perror("--receive");
+    exit(1);
+  }
+  strcpy(art->title,buffer);
+
+  //envoie demande modification du contenu
+  initTab(buffer,sBuffer);
+  strcpy(buffer,"Nouveau contenu : ");
+  vSend=send(*descBrCv,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
+
+  //reception des modification du contenu
+  initTab(buffer,sBuffer);
+  vRecv=recv(*descBrCv,buffer,sBuffer,0);
+  if(vRecv==-1){
+    perror("--receive");
+    exit(1);
+  }
+  strcpy(art->content,buffer);
+
+  //date de modif
+  art->modify=time(NULL);
+
+  //envoie de l'entete d'affichage de l'article modifie
+  initTab(buffer,sBuffer);
+  strcpy(buffer,"\nArticle modifie:\n");
+  vSend=send(*descBrCv,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
+
+  //reception du message de synchronisation
+  initTab(buffer,sBuffer);
+  vRecv=recv(*descBrCv,buffer,sBuffer,0);
+  if(vRecv==-1){
+    perror("--receive");
+    exit(1);
+  }
+
+  printArticle(descBrCv,art);
+}
 
 void createArticle(int *descBrCv){
   //recepteur de la valeur des send et recv
@@ -68,32 +166,56 @@ void createArticle(int *descBrCv){
 
   //on envoit saisir titre
   initTab(buffer,sizeof(buffer));
-  strcpy(buffer,"Creation d'un Article\nSaisir le titre de l'article: ");
+  strcpy(buffer,"\nCreation d'un Article\nSaisir le titre de l'article: ");
   vSend=send(*descBrCv,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
 
   //recoit titre
   initTab(buffer,sizeof(buffer));
   vRecv=recv(*descBrCv,buffer,sizeof(buffer),0);
+  if(vRecv==-1){
+    perror("--receive");
+    exit(1);
+  }
   strcpy(art.title,buffer);
 
   //envoi saisir auteur
   initTab(buffer,sizeof(buffer));
   strcpy(buffer,"Saisir auteur: ");
   vSend=send(*descBrCv,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
 
   //recoit auteur
   initTab(buffer,sizeof(buffer));
   vRecv=recv(*descBrCv,buffer,sizeof(buffer),0);
+  if(vRecv==-1){
+    perror("--receive");
+    exit(1);
+  }
   strcpy(art.author,buffer);
 
   //envoi saisir contenu
   initTab(buffer,sizeof(buffer));
   strcpy(buffer,"Saisir contenu: ");
   vSend=send(*descBrCv,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
 	
   //recoit contenu
   initTab(buffer,sizeof(buffer));
   vRecv=recv(*descBrCv,buffer,sizeof(buffer),0);
+  if(vRecv==-1){
+    perror("--receive");
+    exit(1);
+  }
   strcpy(art.content,buffer);
 
   //date de creation	
@@ -106,9 +228,12 @@ void createArticle(int *descBrCv){
   initTab(buffer,sizeof(buffer));
   strcpy(buffer,"#done");
   vSend=send(*descBrCv,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
 
-  cout<<"Article cree"<<endl;
-  printArticle(descBrCv,&art);	
+  modifyArticle(descBrCv,&art);
 }
 
 
@@ -124,11 +249,6 @@ void *actConnectClient (void *par){
   //creation du buffer
   char buffer[255];
   int sBuffer=sizeof(buffer);
-
-  /*generation de numero de port aleatoire*/
-  srand(time(NULL));
-  int port=21346+(rand()%97);
-  cout<<"new thread --port:"<<port<<endl;
 
   //Envoi de liste d'options:
   initTab(buffer,sBuffer);
@@ -211,7 +331,6 @@ int main(int argc, char *argv[]){
   while(true){
     /*acceptation de la connexion*/
     descBrCv=accept(descBrPub,(struct sockaddr *)&brCv,&lgBrCv);
-    cout<<"descBrCv="<<descBrCv<<endl;
     if(descBrCv==-1){
       perror("--acceptation descBrCv");			
       sleep(5);
