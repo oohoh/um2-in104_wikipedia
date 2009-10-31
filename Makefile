@@ -1,8 +1,8 @@
 all:		clean main
 
 main:		client.o server.o sock.o sockdist.o
-		g++ -lpthread -o ./server/server ./server/server.o ./lib/sock.o ./lib/sockdist.o
 		g++ -o ./client/client ./client/client.o ./lib/sock.o ./lib/sockdist.o
+		g++ -lpthread -o ./server/server ./server/server.o ./lib/sock.o ./lib/sockdist.o
 
 sock.o:		./lib/sock.cc
 		g++ -o ./lib/sock.o -c ./lib/sock.cc
@@ -17,4 +17,4 @@ server.o:	./server/server.cc
 		g++ -o ./server/server.o -c ./server/server.cc
 
 clean:
-		rm -rf ./client/*.o ./lib/*.o ./server/*.o
+		rm -rf ./lib/*.o ./client/*.o ./server/*.o
