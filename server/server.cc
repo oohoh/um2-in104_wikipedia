@@ -8,9 +8,9 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
-#include "sock.h"
-#include "sockdist.h"
-#include "articlib.h"
+#include "../lib/sock.h"
+#include "../lib/sockdist.h"
+#include "../lib/articlib.h"
 
 using namespace std;
 
@@ -20,6 +20,7 @@ void initTab(char t[],int size){
     t[i]='\0';
   }
 }
+
 
 void printArticle(int *descBrCv,struct article *art){
   char artBuff[1023];
@@ -58,6 +59,7 @@ void printArticle(int *descBrCv,struct article *art){
     exit(1);
   }
 }
+
 
 void modifyArticle(int *descBrCv,struct article *art){
   //recepteur de la valeur des send et recv
@@ -153,6 +155,7 @@ void modifyArticle(int *descBrCv,struct article *art){
 
   printArticle(descBrCv,art);
 }
+
 
 void createArticle(int *descBrCv){
   //recepteur de la valeur des send et recv
@@ -342,5 +345,3 @@ int main(int argc, char *argv[]){
     }
   }
 }
-
-

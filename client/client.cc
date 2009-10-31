@@ -5,9 +5,8 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
-
-#include "sock.h"
-#include "sockdist.h"
+#include "../lib/sock.h"
+#include "../lib/sockdist.h"
 
 using namespace std;
 
@@ -37,6 +36,7 @@ void printArticle(int *descBrCli){
   //affichage de l'article
   cout<<artBuff<<endl;
 }
+
 
 void modifyArticle(int *descBrCli){
   //recepteur de la valeur des send et recv
@@ -133,6 +133,7 @@ void modifyArticle(int *descBrCli){
   printArticle(descBrCli);
 }
 
+
 void createArticle(int *descBrCli){
   //recepteur de la valeur des send et recv
   int vSend, vRecv;
@@ -221,6 +222,3 @@ int main(int argc, char *argv[]){
     createArticle(&descBrCli);
   }
 }
-
-
-
