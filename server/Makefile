@@ -1,16 +1,20 @@
 all:		clean main
 
-main:		server.o sock.o sockdist.o
-		g++ -lpthread -o server server.o sock.o sockdist.o
+main:		client.o server.o sock.o sockdist.o
+		g++ -lpthread -o ./server/server ./server/server.o ./lib/sock.o ./lib/sockdist.o
+		g++ -o ./client/client ./client/client.o ./lib/sock.o ./lib/sockdist.o
 
-sock.o:		sock.cc
-		g++ -o sock.o -c sock.cc
+sock.o:		./lib/sock.cc
+		g++ -o ./lib/sock.o -c ./lib/sock.cc
 
-sockdist.o:	sockdist.cc
-		g++ -o sockdist.o -c sockdist.cc 
+sockdist.o:	./lib/sockdist.cc
+		g++ -o ./lib/sockdist.o -c ./lib/sockdist.cc
 
-server.o:	server.cc
-		g++ -o server.o -c server.cc
+client.o:	./client/client.cc
+		g++ -o ./client/client.o -c ./client/client.cc
+
+server.o:	./server/server.cc
+		g++ -o ./server/server.o -c ./server/server.cc
 
 clean:
-		rm -rf *.o
+		rm -rf ./client/*.o ./lib/*.o ./server/*.o
