@@ -10,6 +10,28 @@
 
 using namespace std;
 
+//fonctions utilitaires
+void initTab(char t[],int size);
+
+//fonction gestion du menu
+void menuHome(int* descBrCli);
+
+//fonctions gestion des comptes
+void createAccount(int *descBrCli);
+void modifyAccount(int *descBrCli);
+void deleteAccount(int *descBrCli);
+
+////fonctions gestion des groupes
+//void createGroup(int *descBrCv);
+//void modifyGroup(int *descBrCv, group *grp);
+//void deleteGroup(int *descBrCv, group *grp);
+
+//fonctions gestion des articles
+void createArticle(int *descBrCli);
+void modifyArticle(int *descBrCli);
+void deleteArticle(int *descBrCli);
+void printArticle(int *descBrCli);
+
 
 void initTab(char t[],int size){
   for(int i=0;i<size;i++){
@@ -17,6 +39,215 @@ void initTab(char t[],int size){
   }
 }
 
+void menuAccount(int *descBrCli){
+  //recepteur de la valeur des send et recv
+  int vSend, vRecv;
+
+  //buffer
+  char buffer[255];
+  int sBuffer=sizeof(buffer);
+
+ debut_menu:
+
+  //reception de la liste des options
+  initTab(buffer,sBuffer);
+  vRecv = recv(*descBrCli,buffer,sBuffer,0);
+  if(vRecv==-1){
+    perror("--send");
+    exit(1);
+  }
+  cout<<buffer;
+
+  //envoie de l'option choisie
+  initTab(buffer,sBuffer);
+  cin.getline(buffer,sBuffer);
+  vSend=send(*descBrCli,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
+
+  switch(buffer[0]){
+  case '1':
+    createAccount(descBrCli);
+    goto debut_menu;
+  case '2':
+    modifyArticle(descBrCli);
+    goto debut_menu;
+  case '4':
+    break;
+  default:
+    cout<<"Cle invalide"<<endl;
+    goto debut_menu;
+  }
+}
+
+void menuGroup(int *descBrCli){
+  //recepteur de la valeur des send et recv
+  int vSend, vRecv;
+
+  //buffer
+  char buffer[255];
+  int sBuffer=sizeof(buffer);
+
+ debut_menu:
+
+  //reception de la liste des options
+  initTab(buffer,sBuffer);
+  vRecv = recv(*descBrCli,buffer,sBuffer,0);
+  if(vRecv==-1){
+    perror("--send");
+    exit(1);
+  }
+  cout<<buffer;
+
+  //envoie de l'option choisie
+  initTab(buffer,sBuffer);
+  cin.getline(buffer,sBuffer);
+  vSend=send(*descBrCli,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
+
+  switch(buffer[0]){
+  case '1':
+    createAccount(descBrCli);
+    goto debut_menu;
+  case '2':
+    createAccount(descBrCli);
+    goto debut_menu;
+  case '4':
+    break;
+  default:
+    cout<<"Cle invalide ololz"<<endl;
+    goto debut_menu;
+  }
+}
+
+void menuArticle(int *descBrCli){
+  //recepteur de la valeur des send et recv
+  int vSend, vRecv;
+
+  //buffer
+  char buffer[255];
+  int sBuffer=sizeof(buffer);
+
+ debut_menu:
+
+  //reception de la liste des options
+  initTab(buffer,sBuffer);
+  vRecv = recv(*descBrCli,buffer,sBuffer,0);
+  if(vRecv==-1){
+    perror("--send");
+    exit(1);
+  }
+  cout<<buffer;
+
+  //envoie de l'option choisie
+  initTab(buffer,sBuffer);
+  cin.getline(buffer,sBuffer);
+  vSend=send(*descBrCli,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
+
+  switch(buffer[0]){
+  case '1':
+    createAccount(descBrCli);
+    goto debut_menu;
+  case '2':
+    createArticle(descBrCli);
+    goto debut_menu;
+  case '4':
+    break;
+  default:
+    cout<<"Cle invalide"<<endl;
+    goto debut_menu;
+  }
+}
+
+void menuHome(int *descBrCli){
+  //recepteur de la valeur des send et recv
+  int vSend, vRecv;
+
+  //buffer
+  char buffer[255];
+  int sBuffer=sizeof(buffer);
+
+ debut_menu:
+
+  //reception de la liste des options
+  initTab(buffer,sBuffer);
+  vRecv = recv(*descBrCli,buffer,sBuffer,0);
+  if(vRecv==-1){
+    perror("--send");
+    exit(1);
+  }
+  cout<<buffer;
+
+  //envoie de l'option choisie
+  initTab(buffer,sBuffer);
+  cin.getline(buffer,sBuffer);
+  vSend=send(*descBrCli,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
+
+  switch(buffer[0]){
+  case '1':
+    menuAccount(descBrCli);
+    goto debut_menu;
+  case '2':
+    menuGroup(descBrCli);
+    goto debut_menu;
+  case '3':
+    menuArticle(descBrCli);
+    goto debut_menu;
+  case '4':
+    break;
+  default:
+    cout<<"Cle invalide ololz"<<endl;
+    goto debut_menu;
+  }
+}
+
+void createAccount(int *descBrCli){
+  //recepteur de la valeur des send et recv
+  int vSend, vRecv;
+   
+  //buffer
+  char buffer[255];
+  int sBuffer=sizeof(buffer);
+
+  //envoie demande creation article
+  initTab(buffer,sBuffer);
+  strcpy(buffer,"account create");
+  vSend=send(*descBrCli,buffer,strlen(buffer),0);
+
+  //saisie et envoie du titre
+  while(strcmp(buffer,"#done")){
+    initTab(buffer,sBuffer);
+    vRecv=recv(*descBrCli,buffer,sBuffer,0);
+    if(vRecv==-1){
+      perror("--receive");
+      exit(1);
+    }
+    if(strcmp(buffer,"#done")!=0){
+      cout<<buffer;
+      initTab(buffer,sBuffer);
+      cin.getline(buffer,sBuffer);
+      vSend=send(*descBrCli,buffer,strlen(buffer),0);
+      if(vSend==-1){
+	perror("--send");
+	exit(1);
+      }
+    }
+  }
+
+}
 
 void printArticle(int *descBrCli){
   int vRecv;
@@ -199,26 +430,10 @@ int main(int argc, char *argv[]){
   int lgAdrBrPub=sizeof(struct sockaddr_in);
 
   int vConnect=connect(descBrCli,(struct sockaddr *)adrBrPub,lgAdrBrPub);
-  
-  cout<<"res du connect: "<<vConnect<<endl;
-
-  //Contenant d'envoi
-  char buffer[255];
-  char artBuff[1023];
-
-
-  //on recoit les options
-  int resR = recv(descBrCli,buffer,sizeof(buffer),0); 
-  //affiche reception
-  cout<<buffer<<endl;
-  //prepare a input
-
-  char input[255];
-
-  cin.getline(input,255);
-
-  //on envoit notre choix
-  if(strcmp(input,"1")==0){
-    createArticle(&descBrCli);
+  if(vConnect==-1){
+    perror("--connect");
+    exit(1);
   }
+
+  menuHome(&descBrCli);
 }
