@@ -198,7 +198,7 @@ void menuHome(int *descBrCli){
 
   switch(buffer[0]){
   case '1':
-    menuAccount(descBrCli);
+    createAccount(descBrCli);
     goto debut_menu;
   case '2':
     menuGroup(descBrCli);
@@ -225,7 +225,7 @@ void createAccount(int *descBrCli){
   //envoie demande creation article
   initTab(buffer,sBuffer);
   strcpy(buffer,"account create");
-  vSend=send(*descBrCli,buffer,strlen(buffer),0);
+  //vSend=send(*descBrCli,buffer,strlen(buffer),0);
 
   //saisie et envoie du titre
   while(strcmp(buffer,"#done")){

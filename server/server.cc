@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <map>
+#include <utility>
 #include <pthread.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
@@ -15,13 +17,18 @@
 
 using namespace std;
 
+//identifiant de la memoire partage
+int shmid;
+
 //fonctions utilitaires
 void initTab(char t[],int size);
+void initShmwiki(shmwiki wiki);
 
 //fonction gestion du menu
 void menuHome(int* descBrCv);
 
 //fonctions gestion des comptes
+int authentification(int *descBrCv);
 account createAccount(int *descBrCv);
 void modifyAccount(int *descBrCv, account *acc);
 void deleteAccount(int *descBrCv, account *acc);
@@ -37,7 +44,73 @@ void modifyArticle(int *descBrCv, article *art);
 void deleteArticle(int *descBrCv, article *art);
 void printArticle(int *descBrCv, article *art);
 
+void initShmwiki(){
+  int i;
+  shmwiki *p_wiki;
+  p_wiki=(shmwiki *)shmat(shmid,NULL,0666);
 
+  //initialisation des comptes
+  for(i=0;i<25;i++){
+    initTab(p_wiki->acc_list[i].login, sizeof(p_wiki->acc_list[i].login));
+    initTab(p_wiki->acc_list[i].passwd, sizeof(p_wiki->acc_list[i].passwd));
+  }
+  strcpy(p_wiki->acc_list[0].login,"admin");
+  strcpy(p_wiki->acc_list[0].passwd,"admin");
+
+  //test
+  /*for(i=0;i<25;i++){
+    if(strcmp(p_wiki->acc_list[i].login,"")>0){
+      cout<<i<<"-login="<<p_wiki->acc_list[i].login<<"\tpasswd="<<p_wiki->acc_list[i].passwd<<endl;
+    }
+  }//*/
+
+  //initialisation des autres groupes
+  for(i=0;i<15;i++){
+    int j;
+    initTab(p_wiki->grp_list[i].name, sizeof(p_wiki->grp_list[i].name));
+    for(j=0;j<25;j++){
+      p_wiki->grp_list[i].user[j]=-1;
+    }
+    for(j=0;j<50;j++){
+      p_wiki->grp_list[i].article[j]=-1;
+    }
+  }
+  strcpy(p_wiki->grp_list[0].name,"admin");
+  p_wiki->grp_list[0].user[0]=0;
+  strcpy(p_wiki->grp_list[1].name,"public");
+  strcpy(p_wiki->grp_list[2].name,"newsletter");
+
+  //test
+  /*for(i=0;i<15;i++){
+    int j;
+    if(strcmp(p_wiki->grp_list[i].name,"")>0){
+      cout<<"$"<<i<<" --group:"<<p_wiki->grp_list[i].name<<endl;
+      for(j=0;j<25;j++){
+	cout<<"user#"<<j<<":"<<p_wiki->grp_list[i].user[j]<<endl;
+      }
+      for(j=0;j<50;j++){
+	cout<<"article#"<<j<<":"<<p_wiki->grp_list[i].article[j]<<endl;
+      }
+    }
+  }//*/
+  
+
+  //initialisation des articles
+  for(i=0;i<50;i++){
+    initTab(p_wiki->art_list[i].title, sizeof(p_wiki->art_list[i].title));
+    initTab(p_wiki->art_list[i].author, sizeof(p_wiki->art_list[i].author));
+    p_wiki->art_list[i].create=0;
+    p_wiki->art_list[i].modify=0;
+    initTab(p_wiki->art_list[i].content, sizeof(p_wiki->art_list[i].content));
+  }
+
+  //test
+  /*for(i=0;i<50;i++){
+    if(strcmp(p_wiki->art_list[i].title,"")>0){
+      cout<<i<<"-title="<<p_wiki->art_list[i].title<<endl;
+    }
+  }//*/
+}
 
 void initTab(char t[],int size){
   for(int i=0;i<size;i++){
@@ -182,7 +255,7 @@ void menuHome(int *descBrCv){
 
   //envoi de la liste des options:
   initTab(buffer,sBuffer);
-  strcat(buffer,"Menu - Accueil\n1- Menu Compte\n2- Menu Groupes\n3- Menu Articles\n4- Quitter\n#Choix> ");
+  strcat(buffer,"Menu - Accueil\n1- S'authentifier\n2- S'inscrire\n3- Quitter\n#Choix> ");
   vSend=send(*descBrCv,buffer,strlen(buffer),0);
   if(vSend==-1){
     perror("--send");
@@ -199,7 +272,7 @@ void menuHome(int *descBrCv){
 
   switch(buffer[0]){
   case '1':
-    menuAccount(descBrCv);
+    createAccount(descBrCv);
     goto debut_menu;
   case '2':
     menuGroup(descBrCv);
@@ -215,7 +288,7 @@ void menuHome(int *descBrCv){
   }
 }
 
-account createAccount(int *descBrCv){
+int authentification(int *descBrCv){
   //recepteur de la valeur des send et recv
   int vSend, vRecv;
 
@@ -260,6 +333,76 @@ account createAccount(int *descBrCv){
     exit(1);
   }
   strcpy(acc.passwd,buffer);
+
+
+
+  //envoi du message de fin de procedure
+  initTab(buffer,sizeof(buffer));
+  strcpy(buffer,"#done");
+  vSend=send(*descBrCv,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
+}
+
+account createAccount(int *descBrCv){
+  //recepteur de la valeur des send et recv
+  int vSend, vRecv;
+  int i;
+
+  //definition de l'article
+  account acc;
+
+  //buffer
+  char buffer[255];
+
+  //on envoit saisie du login
+  initTab(buffer,sizeof(buffer));
+  strcpy(buffer,"\nCreation d'un compte utilisateur\nSaisir le login: ");
+  vSend=send(*descBrCv,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
+
+  //reception du login
+  initTab(buffer,sizeof(buffer));
+  vRecv=recv(*descBrCv,buffer,sizeof(buffer),0);
+  if(vRecv==-1){
+    perror("--receive");
+    exit(1);
+  }
+  cout<<"recv login="<<buffer<<endl;
+  strcpy(acc.login,buffer);
+
+  //envoi saisir passwd
+  initTab(buffer,sizeof(buffer));
+  strcpy(buffer,"Saisir le passwd: ");
+  vSend=send(*descBrCv,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
+
+  //reception du passwd
+  initTab(buffer,sizeof(buffer));
+  vRecv=recv(*descBrCv,buffer,sizeof(buffer),0);
+  if(vRecv==-1){
+    perror("--receive");
+    exit(1);
+  }
+  cout<<"recv passwd="<<buffer<<endl;
+  strcpy(acc.passwd,buffer);
+
+  shmwiki* p_shmwiki=(shmwiki *)shmat(shmid,NULL,0);
+  for(i=0;i<100;i++){
+    if(p_shmwiki->acc_list[i].login==NULL){
+      p_shmwiki->acc_list[i]=acc;
+      cout<<"account"<<i<<": "<<p_shmwiki->acc_list[i].login<<endl;
+      break;
+    }
+  }
 
   //envoi du message de fin de procedure
   initTab(buffer,sizeof(buffer));
@@ -540,6 +683,7 @@ int main(int argc, char *argv[]){
   int shmid;
   key_t shmkey;
   size_t shmsize;
+  shmwiki *p_wiki;
   /*-threads*/
   int tid;
   pthread_t idConnexion;
@@ -552,17 +696,17 @@ int main(int argc, char *argv[]){
   int vRecv, vSend;
 
   /*generation de la cle key_t*/
-  shmkey=ftok("../README",420);
+  shmkey=ftok("../README",423);
 
   /*calcul de la taille de la memoire partagee*/
-  shmsize=size_t(99*sizeof(article));
+  shmsize=size_t(sizeof(shmwiki));
 
   /*creation de la memoire partagee*/
   shmid=shmget(shmkey,shmsize,IPC_CREAT|0666);
   cout<<"shmid="<<shmid<<endl;
-  shmat(shmid,NULL,0666);
+  initShmwiki();  
 
-  
+//p_wiki=(shmwiki *)shmat(shmid,NULL,0666);
 
   /*definition du port de la br publique*/
   if(argv[1]==NULL){
