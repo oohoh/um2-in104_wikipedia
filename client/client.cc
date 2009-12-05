@@ -14,13 +14,17 @@ using namespace std;
 void initTab(char t[],int size);
 
 //fonction gestion du menu
+int menuAccount(int* descBrCli);
+void menuGroup(int* descBrCli);
+void menuArticle(int* descBrCli);
 void menuHome(int* descBrCli);
 
 //fonctions gestion des comptes
 int authentification(int *descBrCli);
 void createAccount(int *descBrCli);
+void signupNotification(int *descBrCli);
 void modifyAccount(int *descBrCli);
-void deleteAccount(int *descBrCli);
+int deleteAccount(int *descBrCli);
 
 ////fonctions gestion des groupes
 //void createGroup(int *descBrCv);
@@ -40,10 +44,12 @@ void initTab(char t[],int size){
   }
 }
 
-void menuAccount(int *descBrCli){
+int menuAccount(int *descBrCli){
   //recepteur de la valeur des send et recv
   int vSend, vRecv;
-  cout<<"MENU COMPTELOLZ"<<endl;
+
+  int idAuth=1;
+
   //buffer
   char buffer[255];
   int sBuffer=sizeof(buffer);
@@ -70,17 +76,28 @@ void menuAccount(int *descBrCli){
 
   switch(buffer[0]){
   case '1':
-    createAccount(descBrCli);
+    signupNotification(descBrCli);
     goto debut_menu;
+    break;
   case '2':
-    modifyArticle(descBrCli);
+    modifyAccount(descBrCli);
     goto debut_menu;
+    break;
+  case '3':
+    if(deleteAccount(descBrCli)){
+      idAuth=0;
+      break;
+    }else{
+      goto debut_menu;
+      break;
+    }
   case '4':
     break;
   default:
     cout<<"Cle invalide"<<endl;
     goto debut_menu;
   }
+  return idAuth;
 }
 
 void menuGroup(int *descBrCli){
@@ -220,6 +237,7 @@ void menuHome(int *descBrCli){
   }else{
     switch(buffer[0]){
     case '1':
+      idAuth=menuAccount(descBrCli);
       goto debut_menu;
       break;
     case '2':
@@ -314,6 +332,103 @@ void createAccount(int *descBrCli){
       }
     }
   }
+}
+
+void signupNotification(int* descBrCli){
+  //recepteur de la valeur des send et recv
+  int vSend, vRecv;
+
+  //buffer
+  char buffer[255];
+  int sBuffer=sizeof(buffer);
+
+  //reception de l'etat de notification
+  initTab(buffer,sBuffer);
+  vRecv=recv(*descBrCli,buffer,sBuffer,0);
+  if(vRecv==-1){
+    perror("--receive");
+    exit(1);
+  }
+  cout<<buffer<<endl;
+}
+
+void modifyAccount(int *descBrCli){
+  //recepteur de la valeur des send et recv
+  int vSend, vRecv;
+   
+  //buffer
+  char buffer[255];
+  int sBuffer=sizeof(buffer);
+
+  //reception demande de saisie du passwd
+  initTab(buffer,sBuffer);
+  vRecv=recv(*descBrCli,buffer,sBuffer,0);
+  if(vRecv==-1){
+    perror("--receive");
+    exit(1);
+  }
+  cout<<buffer;
+
+  //envoie du passwd saisi
+  initTab(buffer,sBuffer);
+  cin.getline(buffer,sBuffer);
+  vSend=send(*descBrCli,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
+
+  //reception du message de fin de procedure
+  initTab(buffer,sBuffer);
+  vRecv=recv(*descBrCli,buffer,sBuffer,0);
+  if(vRecv==-1){
+    perror("--receive");
+    exit(1);
+  }
+}
+
+int deleteAccount(int *descBrCli){
+  //recepteur de la valeur des send et recv
+  int vSend, vRecv;
+
+  //variable
+  int deleted=0;
+   
+  //buffer
+  char buffer[255];
+  int sBuffer=sizeof(buffer);
+
+  //reception demande de confirmation
+  initTab(buffer,sBuffer);
+  vRecv=recv(*descBrCli,buffer,sBuffer,0);
+  if(vRecv==-1){
+    perror("--receive");
+    exit(1);
+  }
+  cout<<buffer;
+
+  //envoie resultat demande de confirmation
+  initTab(buffer,sBuffer);
+  cin.getline(buffer,sBuffer);
+  vSend=send(*descBrCli,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
+
+  //reception du message de fin de procedure
+  initTab(buffer,sBuffer);
+  vRecv=recv(*descBrCli,buffer,sBuffer,0);
+  if(vRecv==-1){
+    perror("--receive");
+    exit(1);
+  }
+
+  if(strcmp(buffer,"#done")==0){
+    deleted=1;
+  }
+
+  return deleted;
 }
 
 void printArticle(int *descBrCli){

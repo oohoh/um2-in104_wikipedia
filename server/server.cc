@@ -25,13 +25,17 @@ void initTab(char t[],int size);
 void initShmwiki(shmwiki wiki);
 
 //fonction gestion du menu
-void menuHome(int* descBrCv);
+int menuAccount(int *descBrCv, int idAuth);
+void menuGroup(int *descBrCv, int idAuth);
+void menuArticle(int *descBrCv, int idAuth);
+void menuHome(int *descBrCv, int idAuth);
 
 //fonctions gestion des comptes
 int authentification(int *descBrCv);
-account createAccount(int *descBrCv);
-void modifyAccount(int *descBrCv, account *acc);
-void deleteAccount(int *descBrCv, account *acc);
+void createAccount(int *descBrCv);
+void signupNotification(int *descBrCv, int idAuth);
+void modifyAccount(int *descBrCv, int idAuth);
+int deleteAccount(int *descBrCv, int idAuth);
 
 ////fonctions gestion des groupes
 //void createGroup(int *descBrCv);
@@ -46,50 +50,50 @@ void printArticle(int *descBrCv, article *art);
 
 void initShmwiki(){
   int i;
-  shmwiki *p_wiki;
-  p_wiki=(shmwiki *)shmat(shmid,NULL,0666);
+  shmwiki *p_shmwiki;
+  p_shmwiki=(shmwiki *)shmat(shmid,NULL,0666);
 
   //initialisation des comptes
   for(i=0;i<25;i++){
-    initTab(p_wiki->acc_list[i].login, sizeof(p_wiki->acc_list[i].login));
-    initTab(p_wiki->acc_list[i].passwd, sizeof(p_wiki->acc_list[i].passwd));
+    initTab(p_shmwiki->acc_list[i].login, sizeof(p_shmwiki->acc_list[i].login));
+    initTab(p_shmwiki->acc_list[i].passwd, sizeof(p_shmwiki->acc_list[i].passwd));
   }
-  strcpy(p_wiki->acc_list[0].login,"admin");
-  strcpy(p_wiki->acc_list[0].passwd,"admin");
+  strcpy(p_shmwiki->acc_list[0].login,"admin");
+  strcpy(p_shmwiki->acc_list[0].passwd,"admin");
 
   //test
   /*for(i=0;i<25;i++){
-    if(strcmp(p_wiki->acc_list[i].login,"")>0){
-      cout<<i<<"-login="<<p_wiki->acc_list[i].login<<"\tpasswd="<<p_wiki->acc_list[i].passwd<<endl;
+    if(strcmp(p_shmwiki->acc_list[i].login,"")>0){
+      cout<<i<<"-login="<<p_shmwiki->acc_list[i].login<<"\tpasswd="<<p_shmwiki->acc_list[i].passwd<<endl;
     }
   }//*/
 
   //initialisation des autres groupes
   for(i=0;i<15;i++){
     int j;
-    initTab(p_wiki->grp_list[i].name, sizeof(p_wiki->grp_list[i].name));
+    initTab(p_shmwiki->grp_list[i].name, sizeof(p_shmwiki->grp_list[i].name));
     for(j=0;j<25;j++){
-      p_wiki->grp_list[i].user[j]=-1;
+      p_shmwiki->grp_list[i].user[j]=-1;
     }
     for(j=0;j<50;j++){
-      p_wiki->grp_list[i].article[j]=-1;
+      p_shmwiki->grp_list[i].article[j]=-1;
     }
   }
-  strcpy(p_wiki->grp_list[0].name,"admin");
-  p_wiki->grp_list[0].user[0]=0;
-  strcpy(p_wiki->grp_list[1].name,"public");
-  strcpy(p_wiki->grp_list[2].name,"newsletter");
+  strcpy(p_shmwiki->grp_list[0].name,"admin");
+  p_shmwiki->grp_list[0].user[0]=0;
+  strcpy(p_shmwiki->grp_list[1].name,"public");
+  strcpy(p_shmwiki->grp_list[2].name,"notification");
 
   //test
   /*for(i=0;i<15;i++){
     int j;
-    if(strcmp(p_wiki->grp_list[i].name,"")>0){
-      cout<<"$"<<i<<" --group:"<<p_wiki->grp_list[i].name<<endl;
+    if(strcmp(p_shmwiki->grp_list[i].name,"")>0){
+      cout<<"$"<<i<<" --group:"<<p_shmwiki->grp_list[i].name<<endl;
       for(j=0;j<25;j++){
-	cout<<"user#"<<j<<":"<<p_wiki->grp_list[i].user[j]<<endl;
+	cout<<"user#"<<j<<":"<<p_shmwiki->grp_list[i].user[j]<<endl;
       }
       for(j=0;j<50;j++){
-	cout<<"article#"<<j<<":"<<p_wiki->grp_list[i].article[j]<<endl;
+	cout<<"article#"<<j<<":"<<p_shmwiki->grp_list[i].article[j]<<endl;
       }
     }
   }//*/
@@ -97,17 +101,17 @@ void initShmwiki(){
 
   //initialisation des articles
   for(i=0;i<50;i++){
-    initTab(p_wiki->art_list[i].title, sizeof(p_wiki->art_list[i].title));
-    initTab(p_wiki->art_list[i].author, sizeof(p_wiki->art_list[i].author));
-    p_wiki->art_list[i].create=0;
-    p_wiki->art_list[i].modify=0;
-    initTab(p_wiki->art_list[i].content, sizeof(p_wiki->art_list[i].content));
+    initTab(p_shmwiki->art_list[i].title, sizeof(p_shmwiki->art_list[i].title));
+    initTab(p_shmwiki->art_list[i].author, sizeof(p_shmwiki->art_list[i].author));
+    p_shmwiki->art_list[i].create=0;
+    p_shmwiki->art_list[i].modify=0;
+    initTab(p_shmwiki->art_list[i].content, sizeof(p_shmwiki->art_list[i].content));
   }
 
   //test
   /*for(i=0;i<50;i++){
-    if(strcmp(p_wiki->art_list[i].title,"")>0){
-      cout<<i<<"-title="<<p_wiki->art_list[i].title<<endl;
+    if(strcmp(p_shmwiki->art_list[i].title,"")>0){
+      cout<<i<<"-title="<<p_shmwiki->art_list[i].title<<endl;
     }
   }//*/
 }
@@ -118,9 +122,13 @@ void initTab(char t[],int size){
   }
 }
 
-void menuAccount(int *descBrCv){
+int menuAccount(int* descBrCv, int idAuth){
   //recepteur de la valeur des send et recv
   int vSend, vRecv;
+
+  //shmem
+  shmwiki *p_shmwiki;
+  int vShmdt;
 
   //creation du buffer
   char buffer[255];
@@ -130,7 +138,15 @@ void menuAccount(int *descBrCv){
 
   //envoi de la liste des options:
   initTab(buffer,sBuffer);
-  strcat(buffer,"Menu - Compte\n1- S'authentifier\n2- Creer un compte\n3- Supprimer un compte\n4- Retour a l'accueil\n#Choix> ");
+  strcat(buffer,"\nCompte - ");
+  p_shmwiki=(shmwiki *)shmat(shmid,NULL,0666);
+  strcat(buffer,p_shmwiki->acc_list[idAuth].login);
+  vShmdt=shmdt((void *)p_shmwiki);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
+  strcat(buffer,"\n1- (De)Inscription Notification\n2- Modifier le mot de passe\n3- Supprimer le compte\n4- Retour a l'accueil\n#Choix> ");
   vSend=send(*descBrCv,buffer,strlen(buffer),0);
   if(vSend==-1){
     perror("--send");
@@ -147,16 +163,28 @@ void menuAccount(int *descBrCv){
 
   switch(buffer[0]){
   case '1':
-    createAccount(descBrCv);
+    signupNotification(descBrCv, idAuth);
     goto debut_menu;
+    break;
   case '2':
-    createAccount(descBrCv);
+    modifyAccount(descBrCv, idAuth);
     goto debut_menu;
+    break;
+  case '3':
+    if(deleteAccount(descBrCv, idAuth)){
+      idAuth=-1;
+      break;
+    }else{
+      goto debut_menu;
+      break;
+    }
   case '4':
     break;
   default:
     goto debut_menu;
   }
+
+  return idAuth;
 }
 
 void menuGroup(int *descBrCv){
@@ -301,13 +329,13 @@ void menuHome(int *descBrCv){
     case '3':
       break;
     default:
-      cout<<"Cle invalide"<<endl;
       goto debut_menu;
       break;
     }
   }else{
     switch(buffer[0]){
     case '1':
+      idAuth=menuAccount(descBrCv, idAuth);
       goto debut_menu;
       break;
     case '2':
@@ -323,7 +351,6 @@ void menuHome(int *descBrCv){
       goto debut_menu;
       break;
     default:
-      cout<<"Cle invalide"<<endl;
       goto debut_menu;
       break;
     }//*/
@@ -382,7 +409,6 @@ int authentification(int *descBrCv){
   }
   strcpy(acc.passwd,buffer);
 
-
   initTab(buffer,sizeof(buffer));
   strcpy(buffer,"#fail");
   shmwiki* p_shmwiki=(shmwiki *)shmat(shmid,NULL,0);
@@ -411,10 +437,14 @@ int authentification(int *descBrCv){
   return idAuth;
 }
 
-account createAccount(int *descBrCv){
+void createAccount(int *descBrCv){
   //recepteur de la valeur des send et recv
   int vSend, vRecv;
   int i;
+
+  //shmem
+  shmwiki *p_shmwiki;
+  int vShmdt;
 
   //definition de l'article
   account acc;
@@ -458,12 +488,18 @@ account createAccount(int *descBrCv){
   }
   strcpy(acc.passwd,buffer);
 
-  shmwiki* p_shmwiki=(shmwiki *)shmat(shmid,NULL,0);
+  p_shmwiki=(shmwiki *)shmat(shmid,NULL,0);
   for(i=0;i<25;i++){
     if(strcmp(p_shmwiki->acc_list[i].login,"")==0){
       p_shmwiki->acc_list[i]=acc;
       break;
     }
+  }
+
+ vShmdt=shmdt((void *)p_shmwiki);
+  if(vShmdt==-1){
+    perror("--shmdt");
+    exit(1);
   }
 
   //envoi du message de fin de procedure
@@ -474,8 +510,163 @@ account createAccount(int *descBrCv){
     perror("--send");
     exit(1);
   }
+}
 
-  return acc;
+void signupNotification(int* descBrCv, int idAuth){
+  //recepteur de la valeur des send et recv
+  int vSend, vRecv;
+
+  //shmem
+  shmwiki *p_shmwiki;
+  int vShmdt;
+
+  //variables
+  int i;
+  int reg=0;
+
+  //buffer
+  char buffer[255];
+  initTab(buffer,sizeof(buffer));
+
+  p_shmwiki=(shmwiki *)shmat(shmid,NULL,0666);
+  for(i=0;i<25;i++){
+    if(p_shmwiki->grp_list[2].user[i]==idAuth){
+      p_shmwiki->grp_list[2].user[i]=-1;
+      strcpy(buffer,"Notification: OFF");
+      reg=1;
+    }
+  }
+
+  if(reg==0){
+    for(i=0;i<25;i++){
+      if(p_shmwiki->grp_list[2].user[i]==-1){
+	p_shmwiki->grp_list[2].user[i]=idAuth;
+	strcpy(buffer,"Notification: ON");
+      }
+    }
+  }
+
+  vShmdt=shmdt((void *)p_shmwiki);
+  if(vShmdt==-1){
+    perror("--shmdt");
+    exit(1);
+  }
+
+  //on envoit l'etat de la notification
+  vSend=send(*descBrCv,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
+}
+
+void modifyAccount(int *descBrCv, int idAuth){
+  //recepteur de la valeur des send et recv
+  int vSend, vRecv;
+  int i;
+
+  //shmem
+  shmwiki *p_shmwiki;
+  int vShmdt;
+
+  //buffer
+  char buffer[255];
+  int sBuffer=sizeof(buffer);
+
+  //envoi saisir passwd
+  initTab(buffer,sBuffer);
+  strcpy(buffer,"\nChangement de mot de passe\nSaisir le passwd: ");
+  vSend=send(*descBrCv,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
+
+  //reception du passwd
+  initTab(buffer,sBuffer);
+  vRecv=recv(*descBrCv,buffer,sBuffer,0);
+  if(vRecv==-1){
+    perror("--receive");
+    exit(1);
+  }
+
+  p_shmwiki=(shmwiki *)shmat(shmid,NULL,0);
+  strcpy(p_shmwiki->acc_list[idAuth].passwd,buffer);
+  vShmdt=shmdt((void *)p_shmwiki);
+  if(vShmdt==-1){
+    perror("--shmdt");
+    exit(1);
+  }
+
+  //envoi du message de fin de procedure
+  initTab(buffer,sBuffer);
+  strcpy(buffer,"#done");
+  vSend=send(*descBrCv,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
+}
+
+int deleteAccount(int *descBrCv, int idAuth){
+  //recepteur de la valeur des send et recv
+  int vSend, vRecv;
+
+  //variables
+  int i;
+  int deleted=0;
+
+  //shmem
+  shmwiki *p_shmwiki;
+  int vShmdt;
+
+  //buffer
+  char buffer[255];
+  int sBuffer=sizeof(buffer);
+
+  //envoi demande de confirmation
+  initTab(buffer,sBuffer);
+  strcpy(buffer,"\nSuppression de compte\nEtes vous sur de vouloir supprimer votre compte?\nO:Oui\nn:Non\n#Choix> ");
+  vSend=send(*descBrCv,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
+
+  //reception resultat demande de confirmation
+  initTab(buffer,sBuffer);
+  vRecv=recv(*descBrCv,buffer,sBuffer,0);
+  if(vRecv==-1){
+    perror("--receive");
+    exit(1);
+  }
+
+  if((strcmp(buffer,"O")==0) or (strcmp(buffer,"o")==0)){
+    p_shmwiki=(shmwiki *)shmat(shmid,NULL,0);
+    initTab(p_shmwiki->acc_list[idAuth].login, sizeof(p_shmwiki->acc_list[idAuth].login));
+    initTab(p_shmwiki->acc_list[idAuth].passwd, sizeof(p_shmwiki->acc_list[idAuth].passwd));
+    vShmdt=shmdt((void *)p_shmwiki);
+    if(vShmdt==-1){
+      perror("--shmdt");
+      exit(1);
+    }
+    deleted=1;
+  }
+
+  //envoi du message de fin de procedure
+  initTab(buffer,sBuffer);
+  if(deleted==1){
+    strcpy(buffer,"#done");
+  }else{
+    strcpy(buffer,"#fail");
+  }
+  vSend=send(*descBrCv,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
+
+  return deleted;
 }
 
 void printArticle(int *descBrCv,article *art){
