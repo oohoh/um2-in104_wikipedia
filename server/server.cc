@@ -263,9 +263,9 @@ void menuHome(int *descBrCv){
   //envoi de la liste des options:
   initTab(buffer,sBuffer);
   if(idAuth==-1){
-    strcat(buffer,"Accueil - Public\n1- S'authentifier\n2- S'inscrire\n3- Quitter\n#Choix> ");
+    strcat(buffer,"\nAccueil - Public\n1- S'authentifier\n2- S'inscrire\n3- Quitter\n#Choix> ");
   }else{
-    strcat(buffer,"Accueil - ");
+    strcat(buffer,"\nAccueil - ");
     p_wiki=(shmwiki *)shmat(shmid,NULL,0666);
     strcat(buffer,p_wiki->acc_list[idAuth].login);
     vShmdt=shmdt((void *)p_wiki);
@@ -303,9 +303,30 @@ void menuHome(int *descBrCv){
     default:
       cout<<"Cle invalide"<<endl;
       goto debut_menu;
+      break;
     }
   }else{
-    cout<<"INTELINSIIIIIDE"<<endl;
+    switch(buffer[0]){
+    case '1':
+      goto debut_menu;
+      break;
+    case '2':
+      //menuGroup(descBrCv);
+      goto debut_menu;
+      break;
+    case '3':
+      menuArticle(descBrCv);
+      goto debut_menu;
+      break;
+    case '4':
+      idAuth=-1;
+      goto debut_menu;
+      break;
+    default:
+      cout<<"Cle invalide"<<endl;
+      goto debut_menu;
+      break;
+    }//*/
   }
 }
 
@@ -341,7 +362,6 @@ int authentification(int *descBrCv){
     perror("--receive");
     exit(1);
   }
-  cout<<"recv login="<<buffer<<endl;
   strcpy(acc.login,buffer);
 
   //envoi saisir passwd
@@ -360,7 +380,6 @@ int authentification(int *descBrCv){
     perror("--receive");
     exit(1);
   }
-  cout<<"recv passwd="<<buffer<<endl;
   strcpy(acc.passwd,buffer);
 
 
@@ -388,7 +407,6 @@ int authentification(int *descBrCv){
     perror("--send");
     exit(1);
   }
-  cout<<"buffer="<<buffer<<endl;
 
   return idAuth;
 }
@@ -420,7 +438,6 @@ account createAccount(int *descBrCv){
     perror("--receive");
     exit(1);
   }
-  cout<<"recv login="<<buffer<<endl;
   strcpy(acc.login,buffer);
 
   //envoi saisir passwd
@@ -439,14 +456,12 @@ account createAccount(int *descBrCv){
     perror("--receive");
     exit(1);
   }
-  cout<<"recv passwd="<<buffer<<endl;
   strcpy(acc.passwd,buffer);
 
   shmwiki* p_shmwiki=(shmwiki *)shmat(shmid,NULL,0);
   for(i=0;i<25;i++){
     if(strcmp(p_shmwiki->acc_list[i].login,"")==0){
       p_shmwiki->acc_list[i]=acc;
-      cout<<"account"<<i<<": "<<p_shmwiki->acc_list[i].login<<endl;
       break;
     }
   }

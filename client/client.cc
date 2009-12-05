@@ -181,7 +181,6 @@ void menuHome(int *descBrCli){
   int sBuffer=sizeof(buffer);
 
  debut_menu:
-  cout<<"IDAUTH="<<idAuth<<endl;
 
   //reception de la liste des options
   initTab(buffer,sBuffer);
@@ -210,14 +209,37 @@ void menuHome(int *descBrCli){
     case '2':
       createAccount(descBrCli);
       goto debut_menu;
+      break;
     case '3':
       break;
     default:
       cout<<"Cle invalide"<<endl;
       goto debut_menu;
+      break;
     }
   }else{
-    cout<<"in SWITCH AUTH"<<endl;
+    switch(buffer[0]){
+    case '1':
+      goto debut_menu;
+      break;
+    case '2':
+      //menuGroup(descBrCli);
+      goto debut_menu;
+      break;
+    case '3':
+      menuArticle(descBrCli);
+      goto debut_menu;
+      break;
+    case '4':
+      idAuth=0;
+      cout<<"Logged out."<<endl;
+      goto debut_menu;
+      break;
+    default:
+      cout<<"Cle invalide"<<endl;
+      goto debut_menu;
+      break;
+    }//*/
   }
 }
 
@@ -231,10 +253,9 @@ int authentification(int *descBrCli){
   //buffer
   char buffer[255];
   int sBuffer=sizeof(buffer);
-  cout<<"dansmonventre"<<endl;
 
   //saisie et envoie des identifiants
-  while((strcmp(buffer,"#done")!=0) or (strcmp(buffer,"#fail")!=0)){
+  while((strcmp(buffer,"#done")!=0) and (strcmp(buffer,"#fail")!=0)){
     initTab(buffer,sBuffer);
     vRecv=recv(*descBrCli,buffer,sBuffer,0);
     if(vRecv==-1){
@@ -257,7 +278,7 @@ int authentification(int *descBrCli){
   if(strcmp(buffer,"#done")==0){
     idAuth=1;
   }
-  cout<<"auth-idAuth="<<idAuth<<endl;
+
   return idAuth;
 }
 
