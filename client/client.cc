@@ -17,6 +17,7 @@ void initTab(char t[],int size);
 void menuHome(int* descBrCli);
 
 //fonctions gestion des comptes
+int authentification(int *descBrCli);
 void createAccount(int *descBrCli);
 void modifyAccount(int *descBrCli);
 void deleteAccount(int *descBrCli);
@@ -42,7 +43,7 @@ void initTab(char t[],int size){
 void menuAccount(int *descBrCli){
   //recepteur de la valeur des send et recv
   int vSend, vRecv;
-
+  cout<<"MENU COMPTELOLZ"<<endl;
   //buffer
   char buffer[255];
   int sBuffer=sizeof(buffer);
@@ -172,11 +173,15 @@ void menuHome(int *descBrCli){
   //recepteur de la valeur des send et recv
   int vSend, vRecv;
 
+  //variable d'authentification
+  int idAuth=0;
+
   //buffer
   char buffer[255];
   int sBuffer=sizeof(buffer);
 
  debut_menu:
+  cout<<"IDAUTH="<<idAuth<<endl;
 
   //reception de la liste des options
   initTab(buffer,sBuffer);
@@ -196,22 +201,64 @@ void menuHome(int *descBrCli){
     exit(1);
   }
 
-  switch(buffer[0]){
-  case '1':
-    createAccount(descBrCli);
-    goto debut_menu;
-  case '2':
-    menuGroup(descBrCli);
-    goto debut_menu;
-  case '3':
-    menuArticle(descBrCli);
-    goto debut_menu;
-  case '4':
-    break;
-  default:
-    cout<<"Cle invalide ololz"<<endl;
-    goto debut_menu;
+  if(idAuth==0){
+    switch(buffer[0]){
+    case '1':
+      idAuth=authentification(descBrCli);
+      goto debut_menu;
+      break;
+    case '2':
+      createAccount(descBrCli);
+      goto debut_menu;
+    case '3':
+      break;
+    default:
+      cout<<"Cle invalide"<<endl;
+      goto debut_menu;
+    }
+  }else{
+    cout<<"in SWITCH AUTH"<<endl;
   }
+}
+
+int authentification(int *descBrCli){
+  //recepteur de la valeur des send et recv
+  int vSend, vRecv;
+
+  //variables
+  int idAuth=0;
+   
+  //buffer
+  char buffer[255];
+  int sBuffer=sizeof(buffer);
+  cout<<"dansmonventre"<<endl;
+
+  //saisie et envoie des identifiants
+  while((strcmp(buffer,"#done")!=0) or (strcmp(buffer,"#fail")!=0)){
+    initTab(buffer,sBuffer);
+    vRecv=recv(*descBrCli,buffer,sBuffer,0);
+    if(vRecv==-1){
+      perror("--receive");
+      exit(1);
+    }
+
+    if((strcmp(buffer,"#done")!=0) and (strcmp(buffer,"#fail")!=0)){
+    cout<<buffer;
+    initTab(buffer,sBuffer);
+    cin.getline(buffer,sBuffer);
+    vSend=send(*descBrCli,buffer,strlen(buffer),0);
+      if(vSend==-1){
+	perror("--send");
+	exit(1);
+      }
+    }
+  }
+
+  if(strcmp(buffer,"#done")==0){
+    idAuth=1;
+  }
+  cout<<"auth-idAuth="<<idAuth<<endl;
+  return idAuth;
 }
 
 void createAccount(int *descBrCli){
@@ -222,7 +269,7 @@ void createAccount(int *descBrCli){
   char buffer[255];
   int sBuffer=sizeof(buffer);
 
-  //envoie demande creation article
+  //envoie demande creation compte
   initTab(buffer,sBuffer);
   strcpy(buffer,"account create");
   //vSend=send(*descBrCli,buffer,strlen(buffer),0);
@@ -246,7 +293,6 @@ void createAccount(int *descBrCli){
       }
     }
   }
-
 }
 
 void printArticle(int *descBrCli){

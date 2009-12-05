@@ -247,6 +247,13 @@ void menuHome(int *descBrCv){
   //recepteur de la valeur des send et recv
   int vSend, vRecv;
 
+  //recepteur de la valeur du shmdt
+  shmwiki *p_wiki;
+  int vShmdt;
+
+  //variable d'authentification
+  int idAuth=-1;
+
   //creation du buffer
   char buffer[255];
   int sBuffer=sizeof(buffer);
@@ -255,7 +262,19 @@ void menuHome(int *descBrCv){
 
   //envoi de la liste des options:
   initTab(buffer,sBuffer);
-  strcat(buffer,"Menu - Accueil\n1- S'authentifier\n2- S'inscrire\n3- Quitter\n#Choix> ");
+  if(idAuth==-1){
+    strcat(buffer,"Accueil - Public\n1- S'authentifier\n2- S'inscrire\n3- Quitter\n#Choix> ");
+  }else{
+    strcat(buffer,"Accueil - ");
+    p_wiki=(shmwiki *)shmat(shmid,NULL,0666);
+    strcat(buffer,p_wiki->acc_list[idAuth].login);
+    vShmdt=shmdt((void *)p_wiki);
+    if(vSend==-1){
+      perror("--send");
+      exit(1);
+    }
+    strcat(buffer,"\n1- Mon compte\n2- Groupes\n3- Articles\n4- Deconnection\n#Choix> ");
+  }
   vSend=send(*descBrCv,buffer,strlen(buffer),0);
   if(vSend==-1){
     perror("--send");
@@ -270,27 +289,35 @@ void menuHome(int *descBrCv){
     exit(1);
   }
 
-  switch(buffer[0]){
-  case '1':
-    createAccount(descBrCv);
-    goto debut_menu;
-  case '2':
-    menuGroup(descBrCv);
-    goto debut_menu;
-  case '3':
-    menuArticle(descBrCv);
-    goto debut_menu;
-  case '4':
-    break;
-  default:
-    cout<<"Cle invalide"<<endl;
-    goto debut_menu;
+  if(idAuth==-1){
+    switch(buffer[0]){
+    case '1':
+      idAuth=authentification(descBrCv);
+      goto debut_menu;
+      break;
+    case '2':
+      createAccount(descBrCv);
+      goto debut_menu;
+    case '3':
+      break;
+    default:
+      cout<<"Cle invalide"<<endl;
+      goto debut_menu;
+    }
+  }else{
+    cout<<"INTELINSIIIIIDE"<<endl;
   }
 }
+
 
 int authentification(int *descBrCv){
   //recepteur de la valeur des send et recv
   int vSend, vRecv;
+  int vShmdt;
+
+  //variables
+  int i;
+  int idAuth=-1;
 
   //definition de l'article
   account acc;
@@ -300,7 +327,7 @@ int authentification(int *descBrCv){
 
   //on envoit saisie du login
   initTab(buffer,sizeof(buffer));
-  strcpy(buffer,"\nCreation d'un compte utilisateur\nSaisir le login: ");
+  strcpy(buffer,"\nAuthentification\nSaisir le login: ");
   vSend=send(*descBrCv,buffer,strlen(buffer),0);
   if(vSend==-1){
     perror("--send");
@@ -314,6 +341,7 @@ int authentification(int *descBrCv){
     perror("--receive");
     exit(1);
   }
+  cout<<"recv login="<<buffer<<endl;
   strcpy(acc.login,buffer);
 
   //envoi saisir passwd
@@ -332,18 +360,37 @@ int authentification(int *descBrCv){
     perror("--receive");
     exit(1);
   }
+  cout<<"recv passwd="<<buffer<<endl;
   strcpy(acc.passwd,buffer);
 
 
-
-  //envoi du message de fin de procedure
   initTab(buffer,sizeof(buffer));
-  strcpy(buffer,"#done");
+  strcpy(buffer,"#fail");
+  shmwiki* p_shmwiki=(shmwiki *)shmat(shmid,NULL,0);
+  for(i=0;i<25;i++){
+    if(strcmp(p_shmwiki->acc_list[i].login,acc.login)==0){
+      if(strcmp(p_shmwiki->acc_list[i].passwd,acc.passwd)==0){
+	idAuth=i;
+	strcpy(buffer,"#done");
+	break;
+      }
+    }
+  }
+
+  vShmdt=shmdt((void *)p_shmwiki);
+  if(vShmdt==-1){
+    perror("--shmdt");
+    exit(1);
+  }
+
   vSend=send(*descBrCv,buffer,strlen(buffer),0);
   if(vSend==-1){
     perror("--send");
     exit(1);
   }
+  cout<<"buffer="<<buffer<<endl;
+
+  return idAuth;
 }
 
 account createAccount(int *descBrCv){
@@ -396,8 +443,8 @@ account createAccount(int *descBrCv){
   strcpy(acc.passwd,buffer);
 
   shmwiki* p_shmwiki=(shmwiki *)shmat(shmid,NULL,0);
-  for(i=0;i<100;i++){
-    if(p_shmwiki->acc_list[i].login==NULL){
+  for(i=0;i<25;i++){
+    if(strcmp(p_shmwiki->acc_list[i].login,"")==0){
       p_shmwiki->acc_list[i]=acc;
       cout<<"account"<<i<<": "<<p_shmwiki->acc_list[i].login<<endl;
       break;
