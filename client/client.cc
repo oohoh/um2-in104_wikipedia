@@ -27,9 +27,11 @@ void modifyAccount(int *descBrCli);
 int deleteAccount(int *descBrCli);
 
 ////fonctions gestion des groupes
-//void createGroup(int *descBrCv);
-//void modifyGroup(int *descBrCv, group *grp);
-//void deleteGroup(int *descBrCv, group *grp);
+void listGroup(int* descBrCli);
+void createGroup(int *descBrCli);
+void joinGroup(int *descBrCli);
+void leaveGroup(int *descBrCli);
+void deleteGroup(int *descBrCli);
 
 //fonctions gestion des articles
 void createArticle(int *descBrCli);
@@ -104,11 +106,16 @@ void menuGroup(int *descBrCli){
   //recepteur de la valeur des send et recv
   int vSend, vRecv;
 
+  int idAuth=1;
+
   //buffer
   char buffer[255];
   int sBuffer=sizeof(buffer);
 
  debut_menu:
+
+  //reception de la liste des groupes
+  listGroup(descBrCli);
 
   //reception de la liste des options
   initTab(buffer,sBuffer);
@@ -130,15 +137,25 @@ void menuGroup(int *descBrCli){
 
   switch(buffer[0]){
   case '1':
-    createAccount(descBrCli);
+    createGroup(descBrCli);
     goto debut_menu;
+    break;
   case '2':
-    createAccount(descBrCli);
+    joinGroup(descBrCli);
     goto debut_menu;
+    break;
+  case '3':
+    leaveGroup(descBrCli);
+    goto debut_menu;
+    break;
   case '4':
+    deleteGroup(descBrCli);
+    goto debut_menu;
+    break;
+  case '5':
     break;
   default:
-    cout<<"Cle invalide ololz"<<endl;
+    cout<<"Cle invalide"<<endl;
     goto debut_menu;
   }
 }
@@ -241,7 +258,7 @@ void menuHome(int *descBrCli){
       goto debut_menu;
       break;
     case '2':
-      //menuGroup(descBrCli);
+      menuGroup(descBrCli);
       goto debut_menu;
       break;
     case '3':
@@ -431,6 +448,177 @@ int deleteAccount(int *descBrCli){
   return deleted;
 }
 
+void listGroup(int *descBrCli){
+  //recepteur de la valeur des send et recv
+  int vSend, vRecv;
+   
+  //buffer
+  char buffer[255];
+  int sBuffer=sizeof(buffer);
+
+  //reception de la liste des groupes
+  initTab(buffer,sBuffer);
+  vRecv=recv(*descBrCli,buffer,sBuffer,0);
+  if(vRecv==-1){
+    perror("--receive");
+    exit(1);
+  }
+  cout<<buffer;
+
+  //envoie message de synchronisation
+  initTab(buffer,sBuffer);
+  strcat(buffer,"#sync");
+  vSend=send(*descBrCli,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
+}
+
+void createGroup(int *descBrCli){
+  //recepteur de la valeur des send et recv
+  int vSend, vRecv;
+   
+  //buffer
+  char buffer[255];
+  int sBuffer=sizeof(buffer);
+
+  //reception demande de nom
+  initTab(buffer,sBuffer);
+  vRecv=recv(*descBrCli,buffer,sBuffer,0);
+  if(vRecv==-1){
+    perror("--receive");
+    exit(1);
+  }
+  cout<<buffer;
+
+  //envoie du nom de groupe
+  initTab(buffer,sBuffer);
+  cin.getline(buffer,sBuffer);
+  vSend=send(*descBrCli,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
+
+  //reception du resultat
+  initTab(buffer,sBuffer);
+  vRecv=recv(*descBrCli,buffer,sBuffer,0);
+  if(vRecv==-1){
+    perror("--receive");
+    exit(1);
+  }
+  cout<<buffer<<endl;
+}
+
+void joinGroup(int *descBrCli){
+  //recepteur de la valeur des send et recv
+  int vSend, vRecv;
+   
+  //buffer
+  char buffer[255];
+  int sBuffer=sizeof(buffer);
+
+  //reception demande d'ID du groupe
+  initTab(buffer,sBuffer);
+  vRecv=recv(*descBrCli,buffer,sBuffer,0);
+  if(vRecv==-1){
+    perror("--receive");
+    exit(1);
+  }
+  cout<<buffer;
+
+  //envoie de l'ID du groupe
+  initTab(buffer,sBuffer);
+  cin.getline(buffer,sBuffer);
+  vSend=send(*descBrCli,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
+
+  //reception du resultat
+  initTab(buffer,sBuffer);
+  vRecv=recv(*descBrCli,buffer,sBuffer,0);
+  if(vRecv==-1){
+    perror("--receive");
+    exit(1);
+  }
+  cout<<buffer<<endl;
+}
+
+void leaveGroup(int *descBrCli){
+  //recepteur de la valeur des send et recv
+  int vSend, vRecv;
+   
+  //buffer
+  char buffer[255];
+  int sBuffer=sizeof(buffer);
+
+  //reception demande d'ID du groupe
+  initTab(buffer,sBuffer);
+  vRecv=recv(*descBrCli,buffer,sBuffer,0);
+  if(vRecv==-1){
+    perror("--receive");
+    exit(1);
+  }
+  cout<<buffer;
+
+  //envoie de l'ID du groupe
+  initTab(buffer,sBuffer);
+  cin.getline(buffer,sBuffer);
+  vSend=send(*descBrCli,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
+
+  //reception du resultat
+  initTab(buffer,sBuffer);
+  vRecv=recv(*descBrCli,buffer,sBuffer,0);
+  if(vRecv==-1){
+    perror("--receive");
+    exit(1);
+  }
+  cout<<buffer<<endl;
+}
+
+void deleteGroup(int *descBrCli){
+  //recepteur de la valeur des send et recv
+  int vSend, vRecv;
+   
+  //buffer
+  char buffer[255];
+  int sBuffer=sizeof(buffer);
+
+  //reception demande d'ID du groupe
+  initTab(buffer,sBuffer);
+  vRecv=recv(*descBrCli,buffer,sBuffer,0);
+  if(vRecv==-1){
+    perror("--receive");
+    exit(1);
+  }
+  cout<<buffer;
+
+  //envoie de l'ID du groupe
+  initTab(buffer,sBuffer);
+  cin.getline(buffer,sBuffer);
+  vSend=send(*descBrCli,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
+
+  //reception du resultat
+  initTab(buffer,sBuffer);
+  vRecv=recv(*descBrCli,buffer,sBuffer,0);
+  if(vRecv==-1){
+    perror("--receive");
+    exit(1);
+  }
+  cout<<buffer<<endl;
+}
+
 void printArticle(int *descBrCli){
   int vRecv;
   char artBuff[1023];
@@ -449,7 +637,6 @@ void printArticle(int *descBrCli){
   //affichage de l'article
   cout<<artBuff<<endl;
 }
-
 
 void modifyArticle(int *descBrCli){
   //recepteur de la valeur des send et recv

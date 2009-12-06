@@ -23,6 +23,8 @@ int shmid;
 //fonctions utilitaires
 void initTab(char t[],int size);
 void initShmwiki(shmwiki wiki);
+int memberOf(int idAuth, int idGrp);
+int groupExist(char name[31]);
 
 //fonction gestion du menu
 int menuAccount(int *descBrCv, int idAuth);
@@ -37,10 +39,12 @@ void signupNotification(int *descBrCv, int idAuth);
 void modifyAccount(int *descBrCv, int idAuth);
 int deleteAccount(int *descBrCv, int idAuth);
 
-////fonctions gestion des groupes
-//void createGroup(int *descBrCv);
-//void modifyGroup(int *descBrCv, group *grp);
-//void deleteGroup(int *descBrCv, group *grp);
+//fonctions gestion des groupes
+void listGroup(int* descBrCv);
+void createGroup(int *descBrCv, int idAuth);
+void joinGroup(int *descBrCv, int idAuth);
+void leaveGroup(int *descBrCv, int idAuth);
+void deleteGroup(int *descBrCv, int idAuth);
 
 //fonctions gestion des articles
 article createArticle(int *descBrCv);
@@ -48,8 +52,15 @@ void modifyArticle(int *descBrCv, article *art);
 void deleteArticle(int *descBrCv, article *art);
 void printArticle(int *descBrCv, article *art);
 
+void initTab(char t[],int size){
+  for(int i=0;i<size;i++){
+    t[i]='\0';
+  }
+}
+
 void initShmwiki(){
   int i;
+  int vShmdt;
   shmwiki *p_shmwiki;
   p_shmwiki=(shmwiki *)shmat(shmid,NULL,0666);
 
@@ -69,7 +80,7 @@ void initShmwiki(){
   }//*/
 
   //initialisation des autres groupes
-  for(i=0;i<15;i++){
+  for(i=0;i<16;i++){
     int j;
     initTab(p_shmwiki->grp_list[i].name, sizeof(p_shmwiki->grp_list[i].name));
     for(j=0;j<25;j++){
@@ -114,12 +125,66 @@ void initShmwiki(){
       cout<<i<<"-title="<<p_shmwiki->art_list[i].title<<endl;
     }
   }//*/
+
+  vShmdt=shmdt((void *)p_shmwiki);
+  if(vShmdt==-1){
+    perror("--shmdt");
+    exit(1);
+  }
 }
 
-void initTab(char t[],int size){
-  for(int i=0;i<size;i++){
-    t[i]='\0';
+int memberOf(int idAuth, int idGrp){
+  //variables
+  int i;
+  int k=-1;
+
+  //shmem
+  shmwiki *p_shmwiki;
+  int vShmdt;
+
+  p_shmwiki=(shmwiki *)shmat(shmid,NULL,0666);
+
+  for(i=0;i<25;i++){
+    if(p_shmwiki->grp_list[idGrp].user[i]==idAuth){
+      k=i;
+      break;
+    }
   }
+
+  vShmdt=shmdt((void *)p_shmwiki);
+  if(vShmdt==-1){
+    perror("--shmdt");
+    exit(1);
+  }
+
+  return k;
+}
+
+int groupExist(char name[31]){
+  //variables
+  int i;
+  int k=-1;
+
+  //shmem
+  shmwiki *p_shmwiki;
+  int vShmdt;
+
+  p_shmwiki=(shmwiki *)shmat(shmid,NULL,0666);
+
+  for(i=0;i<16;i++){
+    if(strcmp(p_shmwiki->grp_list[i].name,name)==0){
+      k=i;
+      break;
+    }
+  }
+
+  vShmdt=shmdt((void *)p_shmwiki);
+  if(vShmdt==-1){
+    perror("--shmdt");
+    exit(1);
+  }
+
+  return k;
 }
 
 int menuAccount(int* descBrCv, int idAuth){
@@ -187,9 +252,13 @@ int menuAccount(int* descBrCv, int idAuth){
   return idAuth;
 }
 
-void menuGroup(int *descBrCv){
+void menuGroup(int *descBrCv, int idAuth){
   //recepteur de la valeur des send et recv
   int vSend, vRecv;
+
+  //shmem
+  shmwiki *p_shmwiki;
+  int vShmdt;
 
   //creation du buffer
   char buffer[255];
@@ -197,9 +266,20 @@ void menuGroup(int *descBrCv){
 
  debut_menu:
 
+  //envoie de la liste des groupes
+  listGroup(descBrCv);
+
   //envoi de la liste des options:
   initTab(buffer,sBuffer);
-  strcat(buffer,"Menu - Groupe\n1- Creer un groupe\n2- Modifier un groupe\n3- Supprimer un groupe\n4- Retour a l'accueil\n#Choix> ");
+  strcat(buffer,"\nAccueil - ");
+  p_shmwiki=(shmwiki *)shmat(shmid,NULL,0666);
+  strcat(buffer,p_shmwiki->acc_list[idAuth].login);
+  vShmdt=shmdt((void *)p_shmwiki);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
+  strcat(buffer,"\n1- Creer un groupe\n2- Joindre un groupe\n3- Quitter un groupe\n4- Supprimer un groupe\n5- Retour a l'accueil\n#Choix> ");
   vSend=send(*descBrCv,buffer,strlen(buffer),0);
   if(vSend==-1){
     perror("--send");
@@ -216,15 +296,24 @@ void menuGroup(int *descBrCv){
 
   switch(buffer[0]){
   case '1':
-    createAccount(descBrCv);
+    createGroup(descBrCv, idAuth);
     goto debut_menu;
+    break;
   case '2':
-    createArticle(descBrCv);
+    joinGroup(descBrCv, idAuth);
     goto debut_menu;
+    break;
+  case '3':
+    leaveGroup(descBrCv, idAuth);
+    goto debut_menu;
+    break;
   case '4':
+    deleteGroup(descBrCv, idAuth);
+    goto debut_menu;
+    break;
+  case '5':
     break;
   default:
-    cout<<"Cle invalide"<<endl;
     goto debut_menu;
   }
 }
@@ -266,7 +355,6 @@ void menuArticle(int *descBrCv){
   case '4':
     break;
   default:
-    cout<<"Cle invalide"<<endl;
     goto debut_menu;
   }
 }
@@ -339,7 +427,7 @@ void menuHome(int *descBrCv){
       goto debut_menu;
       break;
     case '2':
-      //menuGroup(descBrCv);
+      menuGroup(descBrCv, idAuth);
       goto debut_menu;
       break;
     case '3':
@@ -667,6 +755,303 @@ int deleteAccount(int *descBrCv, int idAuth){
   }
 
   return deleted;
+}
+
+void listGroup(int* descBrCv){
+  //recepteur de la valeur des send et recv
+  int vSend, vRecv;
+
+  //shmem
+  shmwiki *p_shmwiki;
+  int vShmdt;
+
+  //variables
+  int i;
+  char iChar[2];
+  int n=0;
+
+  //buffer
+  char buffer[255];
+  int sBuffer=sizeof(buffer);
+
+  initTab(buffer,sBuffer);
+  strcat(buffer,"\nListe des Groupes:\n");
+  p_shmwiki=(shmwiki *)shmat(shmid,NULL,0666);
+  for(i=1;i<16;i++){
+    if(strcmp(p_shmwiki->grp_list[i].name,"")!=0){
+      sprintf(iChar, "%d\0", i);
+      strcat(buffer,"#");
+      strcat(buffer,iChar);
+      strcat(buffer,":");
+      strcat(buffer,p_shmwiki->grp_list[i].name);
+      strcat(buffer,"\t");
+      n++;
+    }
+
+    if(n==3){
+      strcat(buffer,"\n");
+      n=0;
+    }
+  }
+  strcat(buffer,"\n");
+  vShmdt=shmdt((void *)p_shmwiki);
+  if(vShmdt==-1){
+    perror("--shmdt");
+    exit(1);
+  }
+
+  //on envoit l'etat de la notification
+  vSend=send(*descBrCv,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
+
+  //reception du message de synchronisation
+  initTab(buffer,sBuffer);
+  vRecv=recv(*descBrCv,buffer,sBuffer,0);
+  if(vRecv==-1){
+    perror("--receive");
+    exit(1);
+  }
+}
+
+void createGroup(int *descBrCv, int idAuth){
+  //recepteur de la valeur des send et recv
+  int vSend, vRecv;
+  int i;
+
+  //shmem
+  shmwiki *p_shmwiki;
+  int vShmdt;
+
+  //buffer
+  char buffer[255];
+
+  //on envoit saisie du nom de groupe
+  initTab(buffer,sizeof(buffer));
+  strcpy(buffer,"\nCreation d'un groupe\nSaisir le nom: ");
+  vSend=send(*descBrCv,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
+
+  //reception du nom de groupe
+  initTab(buffer,sizeof(buffer));
+  vRecv=recv(*descBrCv,buffer,sizeof(buffer),0);
+  if(vRecv==-1){
+    perror("--receive");
+    exit(1);
+  }
+
+  if(groupExist(buffer)==-1){
+    p_shmwiki=(shmwiki *)shmat(shmid,NULL,0666);
+    for(i=0;i<16;i++){
+      if(strcmp(p_shmwiki->grp_list[i].name,"")==0){
+	strcpy(p_shmwiki->grp_list[i].name,buffer);
+	p_shmwiki->grp_list[i].user[0]=idAuth;
+	initTab(buffer,sizeof(buffer));
+	strcpy(buffer,"groupe cree");
+	break;
+      }
+    }
+    vShmdt=shmdt((void *)p_shmwiki);
+    if(vShmdt==-1){
+      perror("--shmdt");
+      exit(1);
+    }
+  }else{
+    initTab(buffer,sizeof(buffer));
+    strcpy(buffer,"ce groupe existe deja");
+  }
+
+  //envoi du message de fin de procedure
+  vSend=send(*descBrCv,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
+}
+
+void joinGroup(int *descBrCv, int idAuth){
+  //recepteur de la valeur des send et recv
+  int vSend, vRecv;
+
+  //variables
+  int i, idGrp;
+
+  //shmem
+  shmwiki *p_shmwiki;
+  int vShmdt;
+
+  //buffer
+  char buffer[255];
+  int sBuffer=sizeof(buffer);
+
+  //envoi saisie ID groupe
+  initTab(buffer,sBuffer);
+  strcpy(buffer,"\nJoindre un groupe\nSaisir l'ID du groupe: ");
+  vSend=send(*descBrCv,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
+
+  //reception de l'ID
+  initTab(buffer,sBuffer);
+  vRecv=recv(*descBrCv,buffer,sBuffer,0);
+  if(vRecv==-1){
+    perror("--receive");
+    exit(1);
+  }
+  idGrp=atoi(buffer);
+
+  initTab(buffer,sBuffer);
+  if(memberOf(idAuth, idGrp)!=-1){
+    strcpy(buffer,"vous etes deja inscris dans ce groupe");
+  }else{
+    p_shmwiki=(shmwiki *)shmat(shmid,NULL,0);
+    for(i=0;i<25;i++){
+      if(p_shmwiki->grp_list[idGrp].user[i]==-1){
+	p_shmwiki->grp_list[idGrp].user[i]=idAuth;
+      }
+    }
+    vShmdt=shmdt((void *)p_shmwiki);
+    if(vShmdt==-1){
+      perror("--shmdt");
+      exit(1);
+    }
+    strcpy(buffer,"inscription reussi");
+  }
+
+  //envoi du message de fin de procedure
+  vSend=send(*descBrCv,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
+}
+
+void leaveGroup(int *descBrCv, int idAuth){
+  //recepteur de la valeur des send et recv
+  int vSend, vRecv;
+
+  //variables
+  int i, idGrp;
+
+  //shmem
+  shmwiki *p_shmwiki;
+  int vShmdt;
+
+  //buffer
+  char buffer[255];
+  int sBuffer=sizeof(buffer);
+
+  //envoi saisie ID groupe
+  initTab(buffer,sBuffer);
+  strcpy(buffer,"\nQuitter un groupe\nSaisir l'ID du groupe: ");
+  vSend=send(*descBrCv,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
+
+  //reception de l'ID
+  initTab(buffer,sBuffer);
+  vRecv=recv(*descBrCv,buffer,sBuffer,0);
+  if(vRecv==-1){
+    perror("--receive");
+    exit(1);
+  }
+  idGrp=atoi(buffer);
+
+  initTab(buffer,sBuffer);
+  if(memberOf(idAuth, idGrp)==-1){
+    strcpy(buffer,"vous n'etes pas inscris dans ce groupe");
+  }else{
+    p_shmwiki=(shmwiki *)shmat(shmid,NULL,0);
+    for(i=0;i<25;i++){
+      if(p_shmwiki->grp_list[idGrp].user[i]==idAuth){
+	p_shmwiki->grp_list[idGrp].user[i]=-1;
+      }
+    }
+    vShmdt=shmdt((void *)p_shmwiki);
+    if(vShmdt==-1){
+      perror("--shmdt");
+      exit(1);
+    }
+    strcpy(buffer,"desinscription reussi");
+  }
+
+  //envoi du message de fin de procedure
+  vSend=send(*descBrCv,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
+}
+
+void deleteGroup(int *descBrCv, int idAuth){
+  //recepteur de la valeur des send et recv
+  int vSend, vRecv;
+
+  //variables
+  int i, idGrp;
+  int deleted=0;
+
+  //shmem
+  shmwiki *p_shmwiki;
+  int vShmdt;
+
+  //buffer
+  char buffer[255];
+
+  //envoi demande d'ID du groupe
+  initTab(buffer,sizeof(buffer));
+  strcpy(buffer,"\nSuppression de groupe\nEntrez l'ID du groupe:");
+  vSend=send(*descBrCv,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
+
+  //reception resultat demande de confirmation
+  initTab(buffer,sizeof(buffer));
+  vRecv=recv(*descBrCv,buffer,sizeof(buffer),0);
+  if(vRecv==-1){
+    perror("--receive");
+    exit(1);
+  }
+
+  idGrp=atoi(buffer);
+
+  initTab(buffer,sizeof(buffer));
+  if(memberOf(idAuth, idGrp)!=-1){
+    p_shmwiki=(shmwiki *)shmat(shmid,NULL,0);
+    initTab(p_shmwiki->grp_list[idGrp].name, sizeof(p_shmwiki->grp_list[idGrp].name));
+    for(i=0;i<25;i++){
+      p_shmwiki->grp_list[idGrp].user[i]=-1;
+    }
+    for(i=0;i<50;i++){
+      p_shmwiki->grp_list[idGrp].article[i]=-1;
+    }
+    vShmdt=shmdt((void *)p_shmwiki);
+    if(vShmdt==-1){
+      perror("--shmdt");
+      exit(1);
+    }
+    strcpy(buffer,"groupe supprime");
+  }else{
+    strcpy(buffer,"vous n'avez pas les droits requis");
+  }
+
+  //envoi du resultat
+  vSend=send(*descBrCv,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
 }
 
 void printArticle(int *descBrCv,article *art){
