@@ -304,29 +304,66 @@ int authentification(int *descBrCli){
   char buffer[255];
   int sBuffer=sizeof(buffer);
 
-  //saisie et envoie des identifiants
-  while((strcmp(buffer,"#done")!=0) and (strcmp(buffer,"#fail")!=0)){
-    initTab(buffer,sBuffer);
-    vRecv=recv(*descBrCli,buffer,sBuffer,0);
-    if(vRecv==-1){
-      perror("--receive");
-      exit(1);
-    }
+  //reception demande de login
+  initTab(buffer,sBuffer);
+  vRecv=recv(*descBrCli,buffer,sBuffer,0);
+  if(vRecv==-1){
+    perror("--receive");
+    exit(1);
+  }
+  cout<<buffer;
 
-    if((strcmp(buffer,"#done")!=0) and (strcmp(buffer,"#fail")!=0)){
-    cout<<buffer;
-    initTab(buffer,sBuffer);
-    cin.getline(buffer,sBuffer);
-    vSend=send(*descBrCli,buffer,strlen(buffer),0);
-      if(vSend==-1){
-	perror("--send");
-	exit(1);
-      }
-    }
+  //envoie du login
+  initTab(buffer,sBuffer);
+  cin.getline(buffer,sBuffer);
+  vSend=send(*descBrCli,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
   }
 
+  //reception demande de passwd
+  initTab(buffer,sBuffer);
+  vRecv=recv(*descBrCli,buffer,sBuffer,0);
+  if(vRecv==-1){
+    perror("--receive");
+    exit(1);
+  }
+  cout<<buffer;
+
+  //envoie du passwd
+  initTab(buffer,sBuffer);
+  cin.getline(buffer,sBuffer);
+  vSend=send(*descBrCli,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
+
+  //reception resultat de la procedure
+  initTab(buffer,sBuffer);
+  vRecv=recv(*descBrCli,buffer,sBuffer,0);
+  if(vRecv==-1){
+    perror("--receive");
+    exit(1);
+  }
   if(strcmp(buffer,"#done")==0){
     idAuth=1;
+  }
+
+  //envoie du message de synchronisation
+  initTab(buffer,sBuffer);
+  strcpy(buffer,"#sync");
+  vSend=send(*descBrCli,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
+
+  if(idAuth==0){
+    cout<<"Echec de l'authentification\n"<<endl;
+  }else{
+    cout<<"Authentification reussi\n"<<endl;
   }
 
   return idAuth;
@@ -340,29 +377,58 @@ void createAccount(int *descBrCli){
   char buffer[255];
   int sBuffer=sizeof(buffer);
 
-  //envoie demande creation compte
+  //reception demande de login
   initTab(buffer,sBuffer);
-  strcpy(buffer,"account create");
-  //vSend=send(*descBrCli,buffer,strlen(buffer),0);
+  vRecv=recv(*descBrCli,buffer,sBuffer,0);
+  if(vRecv==-1){
+    perror("--receive");
+    exit(1);
+  }
+  cout<<buffer;
 
-  //saisie et envoie du titre
-  while(strcmp(buffer,"#done")){
-    initTab(buffer,sBuffer);
-    vRecv=recv(*descBrCli,buffer,sBuffer,0);
-    if(vRecv==-1){
-      perror("--receive");
-      exit(1);
-    }
-    if(strcmp(buffer,"#done")!=0){
-      cout<<buffer;
-      initTab(buffer,sBuffer);
-      cin.getline(buffer,sBuffer);
-      vSend=send(*descBrCli,buffer,strlen(buffer),0);
-      if(vSend==-1){
-	perror("--send");
-	exit(1);
-      }
-    }
+  //envoie du login
+  initTab(buffer,sBuffer);
+  cin.getline(buffer,sBuffer);
+  vSend=send(*descBrCli,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
+
+  //reception demande de passwd
+  initTab(buffer,sBuffer);
+  vRecv=recv(*descBrCli,buffer,sBuffer,0);
+  if(vRecv==-1){
+    perror("--receive");
+    exit(1);
+  }
+  cout<<buffer;
+
+  //envoie du passwd
+  initTab(buffer,sBuffer);
+  cin.getline(buffer,sBuffer);
+  vSend=send(*descBrCli,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
+
+  //reception du resultat de la procedure
+  initTab(buffer,sBuffer);
+  vRecv=recv(*descBrCli,buffer,sBuffer,0);
+  if(vRecv==-1){
+    perror("--receive");
+    exit(1);
+  }
+  cout<<buffer;
+
+  //envoie du message de synchronisation
+  initTab(buffer,sBuffer);
+  strcpy(buffer,"#sync");
+  vSend=send(*descBrCli,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
   }
 }
 
@@ -382,6 +448,15 @@ void signupNotification(int* descBrCli){
     exit(1);
   }
   cout<<buffer<<endl;
+
+  //envoie du message de synchronisation
+  initTab(buffer,sBuffer);
+  strcpy(buffer,"#sync");
+  vSend=send(*descBrCli,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
 }
 
 void modifyAccount(int *descBrCli){
@@ -407,14 +482,6 @@ void modifyAccount(int *descBrCli){
   vSend=send(*descBrCli,buffer,strlen(buffer),0);
   if(vSend==-1){
     perror("--send");
-    exit(1);
-  }
-
-  //reception du message de fin de procedure
-  initTab(buffer,sBuffer);
-  vRecv=recv(*descBrCli,buffer,sBuffer,0);
-  if(vRecv==-1){
-    perror("--receive");
     exit(1);
   }
 }
@@ -458,6 +525,15 @@ int deleteAccount(int *descBrCli){
 
   if(strcmp(buffer,"#done")==0){
     deleted=1;
+  }
+
+  //envoie du message de synchronisation
+  initTab(buffer,sBuffer);
+  strcpy(buffer,"#sync");
+  vSend=send(*descBrCli,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
   }
 
   return deleted;
@@ -524,6 +600,15 @@ void createGroup(int *descBrCli){
     exit(1);
   }
   cout<<buffer<<endl;
+
+  //envoie message de synchronisation
+  initTab(buffer,sBuffer);
+  strcat(buffer,"#sync");
+  vSend=send(*descBrCli,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
 }
 
 void joinGroup(int *descBrCli){
@@ -560,6 +645,15 @@ void joinGroup(int *descBrCli){
     exit(1);
   }
   cout<<buffer<<endl;
+
+  //envoie message de synchronisation
+  initTab(buffer,sBuffer);
+  strcat(buffer,"#sync");
+  vSend=send(*descBrCli,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
 }
 
 void leaveGroup(int *descBrCli){
@@ -596,6 +690,15 @@ void leaveGroup(int *descBrCli){
     exit(1);
   }
   cout<<buffer<<endl;
+
+  //envoie message de synchronisation
+  initTab(buffer,sBuffer);
+  strcat(buffer,"#sync");
+  vSend=send(*descBrCli,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
 }
 
 void deleteGroup(int *descBrCli){
@@ -632,6 +735,15 @@ void deleteGroup(int *descBrCli){
     exit(1);
   }
   cout<<buffer<<endl;
+
+  //envoie message de synchronisation
+  initTab(buffer,sBuffer);
+  strcat(buffer,"#sync");
+  vSend=send(*descBrCli,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
 }
 
 void listArticle(int *descBrCli){
@@ -698,7 +810,7 @@ void printArticle(int *descBrCli){
 
   //envoie message de synchronisation
   initTab(buffer,sBuffer);
-  strcpy(buffer,"#done");
+  strcpy(buffer,"#sync");
   vSend=send(*descBrCli,buffer,strlen(buffer),0);
   if(vSend==-1){
     perror("--send");
@@ -781,7 +893,7 @@ void createArticle(int *descBrCli){
 
   //envoie du message de synchronisation
   initTab(buffer,sBuffer);
-  strcpy(buffer,"#done");
+  strcpy(buffer,"#sync");
   vSend=send(*descBrCli,buffer,strlen(buffer),0);
   if(vSend==-1){
     perror("--send");
@@ -882,7 +994,7 @@ void modifyArticle(int *descBrCli){
 
   //envoie du message de synchronisation
   initTab(buffer,sBuffer);
-  strcpy(buffer,"#done");
+  strcpy(buffer,"#sync");
   vSend=send(*descBrCli,buffer,strlen(buffer),0);
   if(vSend==-1){
     perror("--send");
@@ -928,7 +1040,7 @@ void deleteArticle(int *descBrCli){
 
   //envoie message de synchronisation
   initTab(buffer,sBuffer);
-  strcpy(buffer,"#done");
+  strcpy(buffer,"#sync");
   vSend=send(*descBrCli,buffer,strlen(buffer),0);
   if(vSend==-1){
     perror("--send");
