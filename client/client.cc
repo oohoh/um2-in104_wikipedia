@@ -361,9 +361,9 @@ int authentification(int *descBrCli){
   }
 
   if(idAuth==0){
-    cout<<"Echec de l'authentification\n"<<endl;
+    cout<<"Echec de l'authentification"<<endl;
   }else{
-    cout<<"Authentification reussi\n"<<endl;
+    cout<<"Authentification reussi"<<endl;
   }
 
   return idAuth;
@@ -826,8 +826,6 @@ void createArticle(int *descBrCli){
   char buffer[255];
   int sBuffer=sizeof(buffer);
 
-  listGroup(descBrCli);
-
   //reception de la demande de saisie du titre
   initTab(buffer,sBuffer);
   vRecv=recv(*descBrCli,buffer,sBuffer,0);
@@ -908,8 +906,6 @@ void modifyArticle(int *descBrCli){
   //buffer
   char buffer[1023];
   int sBuffer=sizeof(buffer);
-
-  listGroup(descBrCli);
 
   //reception de la demande de saisie de l'ID
   initTab(buffer,sBuffer);
@@ -1048,16 +1044,46 @@ void deleteArticle(int *descBrCli){
   }
 }
 
-int main(int argc, char *argv[]){
-  /*definition de l'adresse de la br publique*/
-  if(argv[1]==NULL){
-    argv[1]=(char*)"localhost";
+void *actBroadcastReceiver(void *par){
+  int sock;                         /* Socket */
+  struct sockaddr_in broadcastAddr; /* Broadcast Address */
+  unsigned short broadcastPort;     /* Port */
+  char recvString[255]; /* Buffer for received string */
+  int recvStringLen;                /* Length of received string */
+
+  broadcastPort = 21345;   /* First arg: broadcast port */
+
+  /* Create a best-effort datagram socket using UDP */
+  if ((sock = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0)
+    printf("socket() failed");
+
+  /* Construct bind structure */
+  memset(&broadcastAddr, 0, sizeof(broadcastAddr));   /* Zero out structure */
+  broadcastAddr.sin_family = AF_INET;                 /* Internet address family */
+  broadcastAddr.sin_addr.s_addr = htonl(INADDR_ANY);  /* Any incoming interface */
+  broadcastAddr.sin_port = htons(broadcastPort);      /* Broadcast port */
+
+  /* Bind to the broadcast port */
+  if (bind(sock, (struct sockaddr *) &broadcastAddr, sizeof(broadcastAddr)) < 0)
+    printf("bind() failed");
+  while(true){
+    /* Receive a single datagram from the server */
+    if ((recvStringLen = recvfrom(sock, recvString, 255, 0, NULL, 0)) < 0)
+      printf("recvfrom() failed");
+
+    recvString[recvStringLen] = '\0';
+    printf("%s\n", recvString);    /* Print the received string */
   }
+    
+  close(sock);
+  pthread_exit(NULL);
+}
 
-
-  /*definition du port de la br publique*/
-  if(argv[2]==NULL){
-    argv[2]=(char*)"21345";
+int main(int argc, char *argv[]){
+  //creation du thread broadcast
+  pthread_t idBroadcastReceiver;
+  if(pthread_create(&idBroadcastReceiver,NULL,actBroadcastReceiver,NULL)!=0){
+    perror("--creation thread");
   }
 
   /*demande de br client*/

@@ -23,8 +23,10 @@ int shmid;
 //fonctions utilitaires
 void initTab(char t[],int size);
 void initShmwiki(shmwiki wiki);
+void broadcastSender(char msg[255]);
 int memberOf(int idAuth, int idGrp);
 int groupExist(char name[31]);
+int accExist(char login[31]);
 int inGroup(int idArt);
 
 //fonction gestion du menu
@@ -103,6 +105,44 @@ void initShmwiki(){
     perror("--shmdt");
     exit(1);
   }
+}
+
+void broadcastSender(char msg[255]){
+  int sock;                         /* Socket */
+  struct sockaddr_in broadcastAddr; /* Broadcast address */
+  char *broadcastIP;                /* IP broadcast address */
+  unsigned short broadcastPort;     /* Server port */
+  char sendString[255];                 /* String to broadcast */
+  int broadcastPermission;          /* Socket opt to set permission to broadcast */
+  unsigned int sendStringLen;       /* Length of string to broadcast */
+
+  broadcastIP = (char*)"localhost";            /* First arg:  broadcast IP address */ 
+  broadcastPort = 21345;    /* Second arg:  broadcast port */
+  strcpy(sendString,msg);
+
+  /* Create socket for sending/receiving datagrams */
+  if ((sock = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0)
+    printf("socket() failed");
+
+  /* Set socket to allow broadcast */
+  broadcastPermission = 1;
+  if (setsockopt(sock, SOL_SOCKET, SO_BROADCAST, (void *) &broadcastPermission, 
+		 sizeof(broadcastPermission)) < 0)
+    printf("setsockopt() failed");
+
+  /* Construct local address structure */
+  memset(&broadcastAddr, 0, sizeof(broadcastAddr));   /* Zero out structure */
+  broadcastAddr.sin_family = AF_INET;                 /* Internet address family */
+  broadcastAddr.sin_addr.s_addr = inet_addr(broadcastIP);/* Broadcast IP address */
+  broadcastAddr.sin_port = htons(broadcastPort);         /* Broadcast port */
+
+  sendStringLen = strlen(sendString);  /* Find length of sendString */
+  /* Broadcast sendString in datagram to clients every 3 seconds*/
+  if (sendto(sock, sendString, sendStringLen, 0, (struct sockaddr *) 
+	     &broadcastAddr, sizeof(broadcastAddr)) != sendStringLen)
+    printf("sendto() sent a different number of bytes than expected");
+
+  sleep(1);   /* Avoids flooding the network */
 }
 
 int memberOf(int idAuth, int idGrp){
@@ -656,7 +696,7 @@ void createAccount(int *descBrCv){
       if(strcmp(p_shmwiki->acc_list[i].login,"")==0){
 	k=i;
 	p_shmwiki->acc_list[i]=acc;
-	strcpy(buffer,"Compte cree\n\n");
+	strcpy(buffer,"Compte cree\n");
 	break;
       }
     }
@@ -918,6 +958,8 @@ void createGroup(int *descBrCv, int idAuth){
   //buffer
   char buffer[255];
   int sBuffer=sizeof(buffer);
+  char msgBroadcast[255];
+  int sMsgBroadcast=sizeof(msgBroadcast);
 
   //on envoit saisie du nom de groupe
   initTab(buffer,sBuffer);
@@ -944,6 +986,11 @@ void createGroup(int *descBrCv, int idAuth){
 	p_shmwiki->grp_list[i].user[0]=idAuth;
 	initTab(buffer,sBuffer);
 	strcpy(buffer,"Groupe cree");
+	initTab(msgBroadcast,sMsgBroadcast);
+	strcat(msgBroadcast,"[annonce] Groupe \"");
+	strcat(msgBroadcast,p_shmwiki->grp_list[i].name);
+	strcat(msgBroadcast,"\" cree.\n");
+	broadcastSender(msgBroadcast);
 	break;
       }
     }
@@ -1122,6 +1169,8 @@ void deleteGroup(int *descBrCv, int idAuth){
   //buffer
   char buffer[255];
   int sBuffer=sizeof(buffer);
+  char msgBroadcast[255];
+  int sMsgBroadcast=sizeof(msgBroadcast);
 
   //envoi demande d'ID du groupe
   initTab(buffer,sBuffer);
@@ -1145,12 +1194,31 @@ void deleteGroup(int *descBrCv, int idAuth){
   initTab(buffer,sBuffer);
   if(memberOf(idAuth, idGrp)!=-1){
     p_shmwiki=(shmwiki *)shmat(shmid,NULL,0);
+
+    initTab(msgBroadcast,sMsgBroadcast);
+    strcat(msgBroadcast,"[annonce] Groupe \"");
+    strcat(msgBroadcast,p_shmwiki->grp_list[idGrp].name);
+    strcat(msgBroadcast,"\" supprime.\n");
+    broadcastSender(msgBroadcast);
+
     initTab(p_shmwiki->grp_list[idGrp].name, sizeof(p_shmwiki->grp_list[idGrp].name));
     for(i=0;i<25;i++){
       p_shmwiki->grp_list[idGrp].user[i]=-1;
     }
     for(i=0;i<50;i++){
-      p_shmwiki->grp_list[idGrp].article[i]=-1;
+      if(p_shmwiki->grp_list[idGrp].article[i]!=-1){
+	initTab(msgBroadcast,sMsgBroadcast);
+	strcat(msgBroadcast,"[annonce] Article ");
+	strcat(msgBroadcast,p_shmwiki->art_list[p_shmwiki->grp_list[idGrp].article[i]].title);
+	strcat(msgBroadcast," supprime.\n");
+	broadcastSender(msgBroadcast);
+	initTab(p_shmwiki->art_list[p_shmwiki->grp_list[idGrp].article[i]].title, sizeof(p_shmwiki->art_list[p_shmwiki->grp_list[idGrp].article[i]].title));
+	initTab(p_shmwiki->art_list[p_shmwiki->grp_list[idGrp].article[i]].author, sizeof(p_shmwiki->art_list[p_shmwiki->grp_list[idGrp].article[i]].author));
+	p_shmwiki->art_list[p_shmwiki->grp_list[idGrp].article[i]].create=0;
+	p_shmwiki->art_list[p_shmwiki->grp_list[idGrp].article[i]].modify=0;
+	initTab(p_shmwiki->art_list[p_shmwiki->grp_list[idGrp].article[i]].content, sizeof(p_shmwiki->art_list[p_shmwiki->grp_list[idGrp].article[i]].content));
+	p_shmwiki->grp_list[idGrp].article[i]=-1;
+      }
     }
     vShmdt=shmdt((void *)p_shmwiki);
     if(vShmdt==-1){
@@ -1188,6 +1256,7 @@ void listArticle(int* descBrCv, int idAuth){
 
   //variables
   int i;
+  char iChar[2];
 
   //buffer
   char buffer[255];
@@ -1198,14 +1267,18 @@ void listArticle(int* descBrCv, int idAuth){
   p_shmwiki=(shmwiki *)shmat(shmid,NULL,0666);
   for(i=1;i<16;i++){
     if((strcmp(p_shmwiki->grp_list[i].name,"")!=0) && (memberOf(idAuth,i)!=-1)){
-      strcat(buffer,"< ");
+      strcat(buffer,"<");
+      initTab(iChar,sizeof(iChar));
+      sprintf(iChar, "%d\0", i);
+      strcat(buffer,iChar);
+      strcat(buffer,":");
       strcat(buffer,p_shmwiki->grp_list[i].name);
-      strcat(buffer," >\n");
+      strcat(buffer,">\n");
       int j;
       int n=0;
       for(j=0;j<50;j++){
 	if(p_shmwiki->grp_list[i].article[j]!=-1){
-	  char iChar[2];
+	  initTab(iChar,sizeof(iChar));
 	  sprintf(iChar, "%d\0", p_shmwiki->grp_list[i].article[j]);
 	  strcat(buffer,"#");
 	  strcat(buffer,iChar);
@@ -1219,9 +1292,9 @@ void listArticle(int* descBrCv, int idAuth){
 	  }
 	}
       }
+      strcat(buffer,"\n");
     }
   }
-  strcat(buffer,"\n");
 
   vShmdt=shmdt((void *)p_shmwiki);
   if(vShmdt==-1){
@@ -1346,8 +1419,8 @@ void createArticle(int *descBrCv, int idAuth){
   //buffer
   char buffer[255];
   int sBuffer=sizeof(buffer);
-
-  listGroup(descBrCv);
+  char msgBroadcast[255];
+  int sMsgBroadcast=sizeof(msgBroadcast);
 
   //on envoit saisir titre
   initTab(buffer,sizeof(buffer));
@@ -1411,8 +1484,14 @@ void createArticle(int *descBrCv, int idAuth){
   if(memberOf(idAuth,idGrp)==-1){
     strcpy(buffer,"vous n'avez pas les droits requis\n\n");
   }else{
+    initTab(msgBroadcast,sMsgBroadcast);
     p_shmwiki=(shmwiki *)shmat(shmid,NULL,0666);
-
+    strcat(msgBroadcast,"[annonce] Article \"");
+    strcat(msgBroadcast,temp_title);
+    strcat(msgBroadcast,"\" ajoute dans le groupe \"");
+    strcat(msgBroadcast,p_shmwiki->grp_list[idGrp].name);
+    strcat(msgBroadcast,"\".\n");
+    broadcastSender(msgBroadcast);
     int i=0;
     int wrote=0;
     while(i<50 && wrote==0){
@@ -1483,8 +1562,8 @@ void modifyArticle(int *descBrCv, int idAuth){
   //buffer
   char buffer[1023];
   int sBuffer=sizeof(buffer);
-
-  listGroup(descBrCv);
+  char msgBroadcast[255];
+  int sMsgBroadcast=sizeof(msgBroadcast);
 
   //envoi saisie ID article
   initTab(buffer,sBuffer);
@@ -1592,10 +1671,18 @@ void modifyArticle(int *descBrCv, int idAuth){
   strcpy(temp_content,buffer);
 
   initTab(buffer,sizeof(buffer));
-  if(memberOf(idAuth,idGrp)==-1){
+
+  if(memberOf(idAuth,(idGrp=inGroup(idArt)))==-1){
     strcpy(buffer,"vous n'avez pas les droits requis\n\n");
   }else{
     p_shmwiki=(shmwiki *)shmat(shmid,NULL,0666);
+
+    strcat(msgBroadcast,"[annonce] Article \"");
+    strcat(msgBroadcast,p_shmwiki->art_list[idArt].title);
+    strcat(msgBroadcast,"\" modifie en article \"");
+    strcat(msgBroadcast,temp_title);
+    strcat(msgBroadcast,"\".\n");
+    broadcastSender(msgBroadcast);
 
     //modification du titre
     strcpy(p_shmwiki->art_list[idArt].title,temp_title);
@@ -1645,6 +1732,8 @@ void deleteArticle(int *descBrCv, int idAuth){
   //buffer
   char buffer[255];
   int sBuffer=sizeof(buffer);
+  char msgBroadcast[255];
+  int sMsgBroadcast=sizeof(msgBroadcast);
 
   //envoi saisie ID article
   initTab(buffer,sBuffer);
@@ -1669,6 +1758,11 @@ void deleteArticle(int *descBrCv, int idAuth){
     strcpy(buffer,"vous n'avez pas les droits requis\n\n");
   }else{
     p_shmwiki=(shmwiki *)shmat(shmid,NULL,0666);
+    initTab(msgBroadcast,sMsgBroadcast);
+    strcat(msgBroadcast,"[annonce] Article \"");
+    strcat(msgBroadcast,p_shmwiki->art_list[idArt].title);
+    strcat(msgBroadcast,"\" supprime.\n");
+    broadcastSender(msgBroadcast);
 
     for(i=0;i<50;i++){
       if(p_shmwiki->grp_list[idGrp].article[i]==idArt){
@@ -1743,14 +1837,7 @@ int main(int argc, char *argv[]){
 
   /*creation de la memoire partagee*/
   shmid=shmget(shmkey,shmsize,IPC_CREAT|0666);
-  initShmwiki();  
-
-//p_wiki=(shmwiki *)shmat(shmid,NULL,0666);
-
-  /*definition du port de la br publique*/
-  if(argv[1]==NULL){
-    argv[1]=(char*)"21345";
-  }
+  initShmwiki();
 
   /*demande de br publique*/
   Sock brPub(SOCK_STREAM,atoi(argv[1]),0);
