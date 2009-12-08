@@ -17,8 +17,9 @@
 
 using namespace std;
 
-//identifiant de la memoire partage
-int shmid;
+//donnees statiques
+int shmid;//identifiant de la memoire partage
+pthread_mutex_t verrou[50]=PTHREAD_MUTEX_INITIALIZER;
 
 //fonctions utilitaires
 void initTab(char t[],int size);
@@ -94,6 +95,7 @@ void initShmwiki(){
   strcpy(p_shmwiki->grp_list[0].name,"admin");
   p_shmwiki->grp_list[0].user[0]=0;
   strcpy(p_shmwiki->grp_list[1].name,"public");
+  p_shmwiki->grp_list[1].user[0]=0;
   strcpy(p_shmwiki->grp_list[15].name,"notification");
 
   //initialisation des articles
@@ -110,44 +112,48 @@ void initShmwiki(){
     perror("--shmdt");
     exit(1);
   }
+
+  //initialisation des mutex
+  /*for(int i=0;i<50;i++){
+    verrou[i]=PTHREAD_MUTEX_INITIALIZER;
+  }//*/
 }
 
 void broadcastSender(char msg[255]){
-  int sock;                         /* Socket */
-  struct sockaddr_in broadcastAddr; /* Broadcast address */
-  char *broadcastIP;                /* IP broadcast address */
-  unsigned short broadcastPort;     /* Server port */
-  char sendString[255];                 /* String to broadcast */
-  int broadcastPermission;          /* Socket opt to set permission to broadcast */
-  unsigned int sendStringLen;       /* Length of string to broadcast */
+  int sock;
+  struct sockaddr_in broadcastAddr;
+  char *broadcastIP;
+  unsigned short broadcastPort;
+  char sendString[255];
+  int broadcastPermission;
+  unsigned int sendStringLen;
 
-  broadcastIP = (char*)"localhost";            /* First arg:  broadcast IP address */ 
-  broadcastPort = 21345;    /* Second arg:  broadcast port */
+  broadcastIP = (char*)"localhost";
+  broadcastPort = 21345;
   strcpy(sendString,msg);
 
-  /* Create socket for sending/receiving datagrams */
+  //creation du socket pour recevoir et envoyer
   if ((sock = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0)
     printf("socket() failed");
 
-  /* Set socket to allow broadcast */
+  //activer le broadcast sur le socket
   broadcastPermission = 1;
   if (setsockopt(sock, SOL_SOCKET, SO_BROADCAST, (void *) &broadcastPermission, 
 		 sizeof(broadcastPermission)) < 0)
     printf("setsockopt() failed");
 
-  /* Construct local address structure */
-  memset(&broadcastAddr, 0, sizeof(broadcastAddr));   /* Zero out structure */
-  broadcastAddr.sin_family = AF_INET;                 /* Internet address family */
-  broadcastAddr.sin_addr.s_addr = inet_addr(broadcastIP);/* Broadcast IP address */
-  broadcastAddr.sin_port = htons(broadcastPort);         /* Broadcast port */
+  //constructure de la structure correspondant a localhost
+  memset(&broadcastAddr, 0, sizeof(broadcastAddr));
+  broadcastAddr.sin_family = AF_INET;
+  broadcastAddr.sin_addr.s_addr = inet_addr(broadcastIP);
+  broadcastAddr.sin_port = htons(broadcastPort);
 
-  sendStringLen = strlen(sendString);  /* Find length of sendString */
-  /* Broadcast sendString in datagram to clients every 3 seconds*/
+  sendStringLen = strlen(sendString);
   if (sendto(sock, sendString, sendStringLen, 0, (struct sockaddr *) 
 	     &broadcastAddr, sizeof(broadcastAddr)) != sendStringLen)
-    printf("sendto() sent a different number of bytes than expected");
+    printf("sendto() failed");
 
-  sleep(1);   /* Avoids flooding the network */
+  usleep(10);
 }
 
 int memberOf(int idAuth, int idGrp){
@@ -875,6 +881,12 @@ void createAccount(int *descBrCv){
 	strcpy(buffer,"Compte cree\n");
 	break;
       }
+    }
+  }
+  for(i=0;i<25;i++){
+    if(p_shmwiki->grp_list[1].user[i]==-1){
+      p_shmwiki->grp_list[1].user[i]=k;
+      break;
     }
   }
   vShmdt=shmdt((void *)p_shmwiki);
@@ -1759,6 +1771,8 @@ void modifyArticle(int *descBrCv, int idAuth){
   }
   idArt=atoi(buffer);
 
+  pthread_mutex_lock(&verrou[idArt]);
+
   initTab(buffer,sBuffer);
   if(memberOf(idAuth,inGroup(idArt))==-1){
     strcpy(buffer,"vous n'avez pas les droits requis");
@@ -1878,6 +1892,8 @@ void modifyArticle(int *descBrCv, int idAuth){
     strcpy(buffer,"article modifie\n\n");
   }
 
+  pthread_mutex_unlock(&verrou[idArt]);
+
   //envoi du message de fin de procedure
   vSend=send(*descBrCv,buffer,strlen(buffer),0);
   if(vSend==-1){
@@ -1929,6 +1945,8 @@ void deleteArticle(int *descBrCv, int idAuth){
   }
   idArt=atoi(buffer);
 
+  pthread_mutex_lock(&verrou[idArt]);
+
   initTab(buffer,sBuffer);
   if(memberOf(idAuth,(idGrp=inGroup(idArt)))==-1){
     strcpy(buffer,"vous n'avez pas les droits requis\n\n");
@@ -1958,6 +1976,8 @@ void deleteArticle(int *descBrCv, int idAuth){
     }
     strcpy(buffer,"article supprime\n\n");
   }
+
+  pthread_mutex_unlock(&verrou[idArt]);
 
   //envoie du resultat de la suppression d'article
   vSend=send(*descBrCv,buffer,strlen(buffer),0);
@@ -2004,6 +2024,11 @@ int main(int argc, char *argv[]){
   int descBrCv;
 
   int vRecv, vSend;
+
+  if (argc != 2){
+    fprintf(stderr,"Usage: %s <port>\n", argv[0]);
+    exit(1);
+  }
 
   /*generation de la cle key_t*/
   shmkey=ftok("../README",423);

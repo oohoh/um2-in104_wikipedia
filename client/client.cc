@@ -10,7 +10,8 @@
 
 using namespace std;
 
-int DISPLAYNOTIFICATION=0;
+//donnees statique
+int DISPLAYNOTIFICATION=0;//boolean de notification
 
 //fonctions utilitaires
 void initTab(char t[],int size);
@@ -127,11 +128,9 @@ int menuAccount(int *descBrCli, int idAuth){
   return idAuth;
 }
 
-void menuGroup(int *descBrCli){
+void menuGroup(int *descBrCli, int idAuth){
   //recepteur de la valeur des send et recv
   int vSend, vRecv;
-
-  int idAuth=1;
 
   //buffer
   char buffer[255];
@@ -185,11 +184,9 @@ void menuGroup(int *descBrCli){
   }
 }
 
-void menuArticle(int *descBrCli){
+void menuArticle(int *descBrCli, int idAuth){
   //recepteur de la valeur des send et recv
   int vSend, vRecv;
-
-  int idAuth=1;
 
   //buffer
   char buffer[255];
@@ -297,11 +294,11 @@ void menuHome(int *descBrCli){
       goto debut_menu;
       break;
     case '2':
-      menuGroup(descBrCli);
+      menuGroup(descBrCli, idAuth);
       goto debut_menu;
       break;
     case '3':
-      menuArticle(descBrCli);
+      menuArticle(descBrCli, idAuth);
       goto debut_menu;
       break;
     case '4':
@@ -400,7 +397,7 @@ int authentification(int *descBrCli){
     exit(1);
   }
 
-  if(idAuth==0){
+  if(idAuth==-1){
     cout<<"Echec de l'authentification"<<endl;
   }else{
     cout<<"Authentification reussi"<<endl;
@@ -1147,27 +1144,27 @@ void deleteArticle(int *descBrCli){
 }
 
 void *actBroadcastReceiver(void *par){
-  int sock;                         /* Socket */
-  struct sockaddr_in broadcastAddr; /* Broadcast Address */
-  unsigned short broadcastPort;     /* Port */
-  char recvString[255]; /* Buffer for received string */
-  int recvStringLen;                /* Length of received string */
+  //variables
+  int sock;
+  struct sockaddr_in broadcastAddr;
+  unsigned short broadcastPort;
+  char recvString[255];
+  int recvStringLen;
 
-  broadcastPort = 21345;   /* First arg: broadcast port */
+  broadcastPort = 21345;
 
-  /* Create a best-effort datagram socket using UDP */
   if ((sock = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0)
     printf("socket() failed");
 
-  /* Construct bind structure */
-  memset(&broadcastAddr, 0, sizeof(broadcastAddr));   /* Zero out structure */
-  broadcastAddr.sin_family = AF_INET;                 /* Internet address family */
-  broadcastAddr.sin_addr.s_addr = htonl(INADDR_ANY);  /* Any incoming interface */
-  broadcastAddr.sin_port = htons(broadcastPort);      /* Broadcast port */
+  //construction de la structure bind
+  memset(&broadcastAddr, 0, sizeof(broadcastAddr));
+  broadcastAddr.sin_family = AF_INET;
+  broadcastAddr.sin_addr.s_addr = htonl(INADDR_ANY);
+  broadcastAddr.sin_port = htons(broadcastPort);
 
-  /* Bind to the broadcast port */
+  //rattacher au port de broadcast
   if (bind(sock, (struct sockaddr *) &broadcastAddr, sizeof(broadcastAddr)) < 0)
-    printf("bind() failed");
+    printf("bind() failed\n");
   while(true){
     /* Receive a single datagram from the server */
     if ((recvStringLen = recvfrom(sock, recvString, 255, 0, NULL, 0)) < 0)
@@ -1175,7 +1172,7 @@ void *actBroadcastReceiver(void *par){
 
     recvString[recvStringLen] = '\0';
     if(DISPLAYNOTIFICATION==1){
-      printf("%s\n", recvString);    /* Print the received string */
+      printf("%s", recvString);
     }
   }
     
@@ -1184,6 +1181,11 @@ void *actBroadcastReceiver(void *par){
 }
 
 int main(int argc, char *argv[]){
+    if (argc < 3){
+      fprintf(stderr,"Usage:  %s <address> <port>\n", argv[0]);
+      exit(1);
+    }
+
   //creation du thread broadcast
   pthread_t idBroadcastReceiver;
   if(pthread_create(&idBroadcastReceiver,NULL,actBroadcastReceiver,NULL)!=0){
