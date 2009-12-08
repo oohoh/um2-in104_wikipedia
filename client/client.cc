@@ -10,6 +10,8 @@
 
 using namespace std;
 
+int DISPLAYNOTIFICATION=0;
+
 //fonctions utilitaires
 void initTab(char t[],int size);
 
@@ -21,6 +23,8 @@ void menuHome(int* descBrCli);
 
 //fonctions gestion des comptes
 int authentification(int *descBrCli);
+void listAccount(int *descBrCli);
+void banAccount(int *descBrCli);
 void createAccount(int *descBrCli);
 void signupNotification(int *descBrCli);
 void modifyAccount(int *descBrCli);
@@ -47,11 +51,9 @@ void initTab(char t[],int size){
   }
 }
 
-int menuAccount(int *descBrCli){
+int menuAccount(int *descBrCli, int idAuth){
   //recepteur de la valeur des send et recv
   int vSend, vRecv;
-
-  int idAuth=1;
 
   //buffer
   char buffer[255];
@@ -77,28 +79,50 @@ int menuAccount(int *descBrCli){
     exit(1);
   }
 
-  switch(buffer[0]){
-  case '1':
-    signupNotification(descBrCli);
-    goto debut_menu;
-    break;
-  case '2':
-    modifyAccount(descBrCli);
-    goto debut_menu;
-    break;
-  case '3':
-    if(deleteAccount(descBrCli)){
-      idAuth=0;
-      break;
-    }else{
+  if(idAuth==0){
+    switch(buffer[0]){
+    case '1':
+      signupNotification(descBrCli);
       goto debut_menu;
       break;
+    case '2':
+      modifyAccount(descBrCli);
+      goto debut_menu;
+      break;
+    case '3':
+      banAccount(descBrCli);
+      goto debut_menu;
+      break;
+    case '4':
+      break;
+    default:
+      cout<<"Cle invalide"<<endl;
+      goto debut_menu;
     }
-  case '4':
-    break;
-  default:
-    cout<<"Cle invalide"<<endl;
-    goto debut_menu;
+  }else{
+    switch(buffer[0]){
+    case '1':
+      signupNotification(descBrCli);
+      goto debut_menu;
+      break;
+    case '2':
+      modifyAccount(descBrCli);
+      goto debut_menu;
+      break;
+    case '3':
+      if(deleteAccount(descBrCli)){
+	idAuth=-1;
+	break;
+      }else{
+	goto debut_menu;
+	break;
+      }
+    case '4':
+      break;
+    default:
+      cout<<"Cle invalide"<<endl;
+      goto debut_menu;
+    }
   }
   return idAuth;
 }
@@ -223,7 +247,7 @@ void menuHome(int *descBrCli){
   int vSend, vRecv;
 
   //variable d'authentification
-  int idAuth=0;
+  int idAuth=-1;
 
   //buffer
   char buffer[255];
@@ -249,7 +273,7 @@ void menuHome(int *descBrCli){
     exit(1);
   }
 
-  if(idAuth==0){
+  if(idAuth==-1){
     switch(buffer[0]){
     case '1':
       idAuth=authentification(descBrCli);
@@ -269,7 +293,7 @@ void menuHome(int *descBrCli){
   }else{
     switch(buffer[0]){
     case '1':
-      idAuth=menuAccount(descBrCli);
+      idAuth=menuAccount(descBrCli, idAuth);
       goto debut_menu;
       break;
     case '2':
@@ -281,7 +305,7 @@ void menuHome(int *descBrCli){
       goto debut_menu;
       break;
     case '4':
-      idAuth=0;
+      idAuth=-1;
       cout<<"Logged out."<<endl;
       goto debut_menu;
       break;
@@ -347,9 +371,25 @@ int authentification(int *descBrCli){
     perror("--receive");
     exit(1);
   }
-  if(strcmp(buffer,"#done")==0){
-    idAuth=1;
+  idAuth=atoi(buffer);
+
+  //envoie du message de synchronisation
+  initTab(buffer,sBuffer);
+  strcpy(buffer,"#sync");
+  vSend=send(*descBrCli,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
   }
+
+  //reception de l'etat de la notification
+  initTab(buffer,sBuffer);
+  vRecv=recv(*descBrCli,buffer,sBuffer,0);
+  if(vRecv==-1){
+    perror("--receive");
+    exit(1);
+  }
+  DISPLAYNOTIFICATION=atoi(buffer);
 
   //envoie du message de synchronisation
   initTab(buffer,sBuffer);
@@ -367,6 +407,62 @@ int authentification(int *descBrCli){
   }
 
   return idAuth;
+}
+
+void listAccount(int *descBrCli){
+  //recepteur de la valeur des send et recv
+  int vSend, vRecv;
+   
+  //buffer
+  char buffer[1023];
+  int sBuffer=sizeof(buffer);
+
+  //reception de la liste des groupes
+  initTab(buffer,sBuffer);
+  vRecv=recv(*descBrCli,buffer,sBuffer,0);
+  if(vRecv==-1){
+    perror("--receive");
+    exit(1);
+  }
+  cout<<buffer;
+
+  //envoie message de synchronisation
+  initTab(buffer,sBuffer);
+  strcpy(buffer,"#sync");
+  vSend=send(*descBrCli,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
+}
+
+void banAccount(int *descBrCli){
+  //recepteur de la valeur des send et recv
+  int vSend, vRecv;
+   
+  //buffer
+  char buffer[255];
+  int sBuffer=sizeof(buffer);
+
+  listAccount(descBrCli);
+  cout<<"listAccount done"<<endl;
+  //reception de la saisie de l'ID
+  initTab(buffer,sBuffer);
+  vRecv=recv(*descBrCli,buffer,sBuffer,0);
+  if(vRecv==-1){
+    perror("--receive");
+    exit(1);
+  }
+  cout<<buffer;
+
+  //envoie de l'ID
+  initTab(buffer,sBuffer);
+  cin.getline(buffer,sBuffer);
+  vSend=send(*descBrCli,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
 }
 
 void createAccount(int *descBrCli){
@@ -447,7 +543,13 @@ void signupNotification(int* descBrCli){
     perror("--receive");
     exit(1);
   }
-  cout<<buffer<<endl;
+  DISPLAYNOTIFICATION=atoi(buffer);
+
+  if(DISPLAYNOTIFICATION==1){
+    cout<<"Notification: ON"<<endl;
+  }else{
+    cout<<"Notification: OFF"<<endl;
+  }
 
   //envoie du message de synchronisation
   initTab(buffer,sBuffer);
@@ -1072,7 +1174,9 @@ void *actBroadcastReceiver(void *par){
       printf("recvfrom() failed");
 
     recvString[recvStringLen] = '\0';
-    printf("%s\n", recvString);    /* Print the received string */
+    if(DISPLAYNOTIFICATION==1){
+      printf("%s\n", recvString);    /* Print the received string */
+    }
   }
     
   close(sock);

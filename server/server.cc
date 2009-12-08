@@ -37,6 +37,8 @@ void menuHome(int *descBrCv, int idAuth);
 
 //fonctions gestion des comptes
 int authentification(int *descBrCv);
+void listAccount(int *descBrCv);
+void banAccount(int *descBrCv);
 void createAccount(int *descBrCv);
 void signupNotification(int *descBrCv, int idAuth);
 void modifyAccount(int *descBrCv, int idAuth);
@@ -72,9 +74,11 @@ void initShmwiki(){
   for(i=0;i<25;i++){
     initTab(p_shmwiki->acc_list[i].login, sizeof(p_shmwiki->acc_list[i].login));
     initTab(p_shmwiki->acc_list[i].passwd, sizeof(p_shmwiki->acc_list[i].passwd));
+    p_shmwiki->acc_list[i].active=0;
   }
   strcpy(p_shmwiki->acc_list[0].login,"admin");
   strcpy(p_shmwiki->acc_list[0].passwd,"admin");
+  p_shmwiki->acc_list[0].active=1;
 
   //initialisation des autres groupes
   for(i=0;i<16;i++){
@@ -90,6 +94,7 @@ void initShmwiki(){
   strcpy(p_shmwiki->grp_list[0].name,"admin");
   p_shmwiki->grp_list[0].user[0]=0;
   strcpy(p_shmwiki->grp_list[1].name,"public");
+  strcpy(p_shmwiki->grp_list[15].name,"notification");
 
   //initialisation des articles
   for(i=0;i<50;i++){
@@ -290,11 +295,20 @@ int menuAccount(int* descBrCv, int idAuth){
     perror("--send");
     exit(1);
   }
-  strcat(buffer,"\n1- (De)Inscription Notification\n2- Modifier le mot de passe\n3- Supprimer le compte\n4- Retour a l'accueil\n#Choix> ");
-  vSend=send(*descBrCv,buffer,strlen(buffer),0);
-  if(vSend==-1){
-    perror("--send");
-    exit(1);
+  if(idAuth==0){
+    strcat(buffer,"\n1- (De)Inscription Notification\n2- Modifier le mot de passe\n3- Bannir un utilisateur\n4- Retour a l'accueil\n#Choix> ");
+    vSend=send(*descBrCv,buffer,strlen(buffer),0);
+    if(vSend==-1){
+      perror("--send");
+      exit(1);
+    }
+  }else{
+    strcat(buffer,"\n1- (De)Inscription Notification\n2- Modifier le mot de passe\n3- Supprimer le compte\n4- Retour a l'accueil\n#Choix> ");
+    vSend=send(*descBrCv,buffer,strlen(buffer),0);
+    if(vSend==-1){
+      perror("--send");
+      exit(1);
+    }
   }
 
   //reception de l'option choisie
@@ -304,30 +318,50 @@ int menuAccount(int* descBrCv, int idAuth){
     perror("--receive");
     exit(1);
   }
-
-  switch(buffer[0]){
-  case '1':
-    signupNotification(descBrCv, idAuth);
-    goto debut_menu;
-    break;
-  case '2':
-    modifyAccount(descBrCv, idAuth);
-    goto debut_menu;
-    break;
-  case '3':
-    if(deleteAccount(descBrCv, idAuth)){
-      idAuth=-1;
-      break;
-    }else{
+  
+  if(idAuth==0){
+    switch(buffer[0]){
+    case '1':
+      signupNotification(descBrCv, idAuth);
       goto debut_menu;
       break;
+    case '2':
+      modifyAccount(descBrCv, idAuth);
+      goto debut_menu;
+      break;
+    case '3':
+      banAccount(descBrCv);
+      goto debut_menu;
+      break;
+    case '4':
+      break;
+    default:
+      goto debut_menu;
     }
-  case '4':
-    break;
-  default:
-    goto debut_menu;
+  }else{
+    switch(buffer[0]){
+    case '1':
+      signupNotification(descBrCv, idAuth);
+      goto debut_menu;
+      break;
+    case '2':
+      modifyAccount(descBrCv, idAuth);
+      goto debut_menu;
+      break;
+    case '3':
+      if(deleteAccount(descBrCv, idAuth)){
+	idAuth=-1;
+	break;
+      }else{
+	goto debut_menu;
+	break;
+      }
+    case '4':
+      break;
+    default:
+      goto debut_menu;
+    }
   }
-
   return idAuth;
 }
 
@@ -600,14 +634,11 @@ int authentification(int *descBrCv){
   }
   strcpy(acc.passwd,buffer);
 
-  initTab(buffer,sizeof(buffer));
-  strcpy(buffer,"#fail");
   shmwiki* p_shmwiki=(shmwiki *)shmat(shmid,NULL,0);
   for(i=0;i<25;i++){
     if(strcmp(p_shmwiki->acc_list[i].login,acc.login)==0){
-      if(strcmp(p_shmwiki->acc_list[i].passwd,acc.passwd)==0){
+      if((strcmp(p_shmwiki->acc_list[i].passwd,acc.passwd)==0) && (p_shmwiki->acc_list[i].active==1)){
 	idAuth=i;
-	strcpy(buffer,"#done");
 	break;
       }
     }
@@ -619,6 +650,42 @@ int authentification(int *descBrCv){
     exit(1);
   }
 
+  char iChar[2];
+  initTab(iChar,sizeof(iChar));
+  sprintf(iChar, "%d\0", idAuth);
+  initTab(buffer,sizeof(buffer));
+  strcpy(buffer,iChar);
+  vSend=send(*descBrCv,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
+
+  //reception du message de synchronisation
+  initTab(buffer,sizeof(buffer));
+  vRecv=recv(*descBrCv,buffer,sizeof(buffer),0);
+  if(vRecv==-1){
+    perror("--receive");
+    exit(1);
+  }
+
+  initTab(buffer,sizeof(buffer));
+  strcpy(buffer,"0");
+  p_shmwiki=(shmwiki *)shmat(shmid,NULL,0666);
+  for(i=0;i<25;i++){
+    if(p_shmwiki->grp_list[15].user[i]==idAuth){
+      strcpy(buffer,"1");
+      break;
+    }
+  }
+
+  vShmdt=shmdt((void *)p_shmwiki);
+  if(vShmdt==-1){
+    perror("--shmdt");
+    exit(1);
+  }
+
+  //envoie de l'etat de la notification
   vSend=send(*descBrCv,buffer,strlen(buffer),0);
   if(vSend==-1){
     perror("--send");
@@ -634,6 +701,114 @@ int authentification(int *descBrCv){
   }
 
   return idAuth;
+}
+
+void listAccount(int *descBrCv){
+  //recepteur de la valeur des send et recv
+  int vSend, vRecv;
+  int i, idAcc;
+  char iChar[2];
+
+  //shmem
+  shmwiki *p_shmwiki;
+  int vShmdt;
+
+  //buffer
+  char buffer[1023];
+  int sBuffer=sizeof(buffer);
+
+  initTab(buffer,sBuffer);
+  strcat(buffer,"Liste des comptes:\n");
+  int n=0;
+  p_shmwiki=(shmwiki *)shmat(shmid,NULL,0);
+  for(i=0;i<25;i++){
+    if(strcmp(p_shmwiki->acc_list[i].login,"")!=0){
+      strcat(buffer,"<");
+      initTab(iChar,sizeof(iChar));
+      initTab(iChar,sizeof(iChar));
+      sprintf(iChar, "%d\0", i);
+      strcat(buffer,iChar);
+      strcat(buffer,">");
+      strcat(buffer,p_shmwiki->acc_list[i].login);
+      if(p_shmwiki->acc_list[i].active==1){
+	strcat(buffer," [actif]    ");
+      }else{
+	strcat(buffer," [banni]    ");
+      }
+      n++;
+      if(n==3){
+	strcat(buffer,"\n");
+	n=0;
+      }
+    }
+  }
+  strcat(buffer,"\n");
+
+  vShmdt=shmdt((void *)p_shmwiki);
+  if(vShmdt==-1){
+    perror("--shmdt");
+    exit(1);
+  }
+
+  //envoi de la liste des comptes
+  vSend=send(*descBrCv,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
+
+  //reception du message de synchronisation
+  initTab(buffer,sBuffer);
+  vRecv=recv(*descBrCv,buffer,sBuffer,0);
+  if(vRecv==-1){
+    perror("--receive");
+    exit(1);
+  }
+}
+
+void banAccount(int *descBrCv){
+  //recepteur de la valeur des send et recv
+  int vSend, vRecv;
+  int i, idAcc;
+
+  //shmem
+  shmwiki *p_shmwiki;
+  int vShmdt;
+
+  //buffer
+  char buffer[255];
+
+  listAccount(descBrCv);
+
+  //on envoit saisie de l'ID du compte
+  initTab(buffer,sizeof(buffer));
+  strcpy(buffer,"\nBan de compte\nSaisir l'ID: ");
+  vSend=send(*descBrCv,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
+
+  //reception de l'ID du compte
+  initTab(buffer,sizeof(buffer));
+  vRecv=recv(*descBrCv,buffer,sizeof(buffer),0);
+  if(vRecv==-1){
+    perror("--receive");
+    exit(1);
+  }
+  idAcc=atoi(buffer);
+
+  p_shmwiki=(shmwiki *)shmat(shmid,NULL,0);
+  if(p_shmwiki->acc_list[idAcc].active==1){
+    p_shmwiki->acc_list[idAcc].active=0;
+  }else{
+    p_shmwiki->acc_list[idAcc].active=1;
+  }
+  vShmdt=shmdt((void *)p_shmwiki);
+  if(vShmdt==-1){
+    perror("--shmdt");
+    exit(1);
+  }
 }
 
 void createAccount(int *descBrCv){
@@ -686,6 +861,7 @@ void createAccount(int *descBrCv){
     exit(1);
   }
   strcpy(acc.passwd,buffer);
+  acc.active=1;
 
   initTab(buffer,sizeof(buffer));
   p_shmwiki=(shmwiki *)shmat(shmid,NULL,0);
@@ -733,7 +909,7 @@ void signupNotification(int* descBrCv, int idAuth){
 
   //variables
   int i;
-  int reg=0;
+  int reg=1;
 
   //buffer
   char buffer[255];
@@ -741,18 +917,18 @@ void signupNotification(int* descBrCv, int idAuth){
 
   p_shmwiki=(shmwiki *)shmat(shmid,NULL,0666);
   for(i=0;i<25;i++){
-    if(p_shmwiki->grp_list[2].user[i]==idAuth){
-      p_shmwiki->grp_list[2].user[i]=-1;
-      strcpy(buffer,"Notification: OFF");
-      reg=1;
+    if(p_shmwiki->grp_list[15].user[i]==idAuth){
+      p_shmwiki->grp_list[15].user[i]=-1;
+      strcpy(buffer,"0");
+      reg=0;
     }
   }
 
-  if(reg==0){
+  if(reg==1){
     for(i=0;i<25;i++){
-      if(p_shmwiki->grp_list[2].user[i]==-1){
-	p_shmwiki->grp_list[2].user[i]=idAuth;
-	strcpy(buffer,"Notification: ON");
+      if(p_shmwiki->grp_list[15].user[i]==-1){
+	p_shmwiki->grp_list[15].user[i]=idAuth;
+	strcpy(buffer,"1");
       }
     }
   }
@@ -907,14 +1083,14 @@ void listGroup(int* descBrCv){
   initTab(buffer,sBuffer);
   strcat(buffer,"\nListe des Groupes:\n");
   p_shmwiki=(shmwiki *)shmat(shmid,NULL,0666);
-  for(i=1;i<16;i++){
+  for(i=1;i<15;i++){
     if(strcmp(p_shmwiki->grp_list[i].name,"")!=0){
       sprintf(iChar, "%d\0", i);
       strcat(buffer,"#");
       strcat(buffer,iChar);
       strcat(buffer,":");
       strcat(buffer,p_shmwiki->grp_list[i].name);
-      strcat(buffer,"\t");
+      strcat(buffer,"    ");
       n++;
     }
 
@@ -1265,7 +1441,7 @@ void listArticle(int* descBrCv, int idAuth){
   initTab(buffer,sBuffer);
   strcat(buffer,"Liste des articles:\n");
   p_shmwiki=(shmwiki *)shmat(shmid,NULL,0666);
-  for(i=1;i<16;i++){
+  for(i=1;i<15;i++){
     if((strcmp(p_shmwiki->grp_list[i].name,"")!=0) && (memberOf(idAuth,i)!=-1)){
       strcat(buffer,"<");
       initTab(iChar,sizeof(iChar));
@@ -1284,7 +1460,7 @@ void listArticle(int* descBrCv, int idAuth){
 	  strcat(buffer,iChar);
 	  strcat(buffer,":");
 	  strcat(buffer,p_shmwiki->art_list[p_shmwiki->grp_list[i].article[j]].title);
-	  strcat(buffer,"\t");
+	  strcat(buffer,"    ");
 	  n++;
 	  if(n==2){
 	    strcat(buffer,"\n");
