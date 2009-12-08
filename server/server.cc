@@ -523,7 +523,7 @@ void menuHome(int *descBrCv){
   //envoi de la liste des options:
   initTab(buffer,sBuffer);
   if(idAuth==-1){
-    strcat(buffer,"\nAccueil - Public\n1- S'authentifier\n2- S'inscrire\n3- Consulter un article\n3- Quitter\n#Choix> ");
+    strcat(buffer,"\nAccueil - Public\n1- S'authentifier\n2- S'inscrire\n3- Consulter un article\n4- Quitter\n#Choix> ");
   }else{
     strcat(buffer,"\nAccueil - ");
     p_wiki=(shmwiki *)shmat(shmid,NULL,0666);
