@@ -40,6 +40,7 @@ void deleteGroup(int *descBrCli);
 
 //fonctions gestion des articles
 void listArticle(int *descBrCli);
+void pubPrintArticle(int *descBrCli);
 void printArticle(int *descBrCli);
 void createArticle(int *descBrCli);
 void modifyArticle(int *descBrCli);
@@ -281,6 +282,10 @@ void menuHome(int *descBrCli){
       goto debut_menu;
       break;
     case '3':
+      pubPrintArticle(descBrCli);
+      goto debut_menu;
+      break;
+    case '4':
       break;
     default:
       cout<<"Cle invalide"<<endl;
@@ -865,6 +870,69 @@ void listArticle(int *descBrCli){
   //envoie message de synchronisation
   initTab(buffer,sBuffer);
   strcat(buffer,"#sync");
+  vSend=send(*descBrCli,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
+}
+
+void pubPrintArticle(int *descBrCli){
+  //recepteur de la valeur des send et recv
+  int vSend, vRecv;
+
+  //buffer
+  char buffer[1023];
+  int sBuffer=sizeof(buffer);
+
+  //reception de la liste des articles
+  initTab(buffer,sBuffer);
+  vRecv=recv(*descBrCli,buffer,sBuffer,0);
+  if(vRecv==-1){
+    perror("--receive");
+    exit(1);
+  }
+  cout<<buffer;
+
+  //envoie message de synchronisation
+  initTab(buffer,sBuffer);
+  strcat(buffer,"#sync");
+  vSend=send(*descBrCli,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
+
+  //reception de la demande de saisie de l'ID article
+  initTab(buffer,sBuffer);
+  vRecv=recv(*descBrCli,buffer,sBuffer,0);
+  if(vRecv==-1){
+    perror("--receive");
+    exit(1);
+  }
+  cout<<buffer;
+
+  //envoie de l'ID article
+  initTab(buffer,sBuffer);
+  cin.getline(buffer,sBuffer);
+  vSend=send(*descBrCli,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
+
+  //reception de l'article
+  initTab(buffer,sBuffer);
+  vRecv=recv(*descBrCli,buffer,sBuffer,0);
+  if(vRecv==-1){
+    perror("--receive");
+    exit(1);
+  }
+  cout<<buffer;
+
+  //envoie message de synchronisation
+  initTab(buffer,sBuffer);
+  strcpy(buffer,"#sync");
   vSend=send(*descBrCli,buffer,strlen(buffer),0);
   if(vSend==-1){
     perror("--send");

@@ -54,6 +54,7 @@ void deleteGroup(int *descBrCv, int idAuth);
 
 //fonctions gestion des articles
 void listArticle(int* descBrCv, int idAuth);
+void pubPrintArticle(int *descBrCv);
 void printArticle(int *descBrCv, int idAuth);
 void createArticle(int *descBrCv, int idAuth);
 void modifyArticle(int *descBrCv, int idAuth);
@@ -522,7 +523,7 @@ void menuHome(int *descBrCv){
   //envoi de la liste des options:
   initTab(buffer,sBuffer);
   if(idAuth==-1){
-    strcat(buffer,"\nAccueil - Public\n1- S'authentifier\n2- S'inscrire\n3- Quitter\n#Choix> ");
+    strcat(buffer,"\nAccueil - Public\n1- S'authentifier\n2- S'inscrire\n3- Consulter un article\n3- Quitter\n#Choix> ");
   }else{
     strcat(buffer,"\nAccueil - ");
     p_wiki=(shmwiki *)shmat(shmid,NULL,0666);
@@ -558,6 +559,9 @@ void menuHome(int *descBrCv){
       createAccount(descBrCv);
       goto debut_menu;
     case '3':
+      pubPrintArticle(descBrCv);
+      goto debut_menu;
+    case '4':
       break;
     default:
       goto debut_menu;
@@ -1380,7 +1384,7 @@ void deleteGroup(int *descBrCv, int idAuth){
   idGrp=atoi(buffer);
 
   initTab(buffer,sBuffer);
-  if(memberOf(idAuth, idGrp)!=-1){
+  if((memberOf(idAuth, idGrp)!=-1) && idGrp>1){
     p_shmwiki=(shmwiki *)shmat(shmid,NULL,0);
 
     initTab(msgBroadcast,sMsgBroadcast);
@@ -1506,6 +1510,142 @@ void listArticle(int* descBrCv, int idAuth){
   }
 }
 
+void pubPrintArticle(int *descBrCv){
+  //recepteur de la valeur des send et recv
+  int vSend, vRecv;
+
+  //shmem
+  shmwiki *p_shmwiki;
+  int vShmdt;
+
+  //variables
+  int i, idArt, idGrp;
+
+  //buffer
+  char buffer[1023];
+  int sBuffer=sizeof(buffer);
+  char iChar[2];
+
+
+  initTab(buffer,sBuffer);
+  strcat(buffer,"Liste des articles:\n");
+  p_shmwiki=(shmwiki *)shmat(shmid,NULL,0666);
+  if(strcmp(p_shmwiki->grp_list[1].name,"")!=0){
+    strcat(buffer,"< ");
+    strcat(buffer,p_shmwiki->grp_list[1].name);
+    strcat(buffer," >\n");
+    int j;
+    int n=0;
+    for(j=0;j<50;j++){
+      if(p_shmwiki->grp_list[1].article[j]!=-1){
+	initTab(iChar,sizeof(iChar));
+	sprintf(iChar, "%d\0", p_shmwiki->grp_list[1].article[j]);
+	strcat(buffer,"#");
+	strcat(buffer,iChar);
+	strcat(buffer,":");
+	strcat(buffer,p_shmwiki->art_list[p_shmwiki->grp_list[1].article[j]].title);
+	strcat(buffer,"    ");
+	n++;
+	if(n==2){
+	  strcat(buffer,"\n");
+	  n=0;
+	}
+      }
+    }
+    strcat(buffer,"\n");
+  }
+
+  vShmdt=shmdt((void *)p_shmwiki);
+  if(vShmdt==-1){
+    perror("--shmdt");
+    exit(1);
+  }
+
+  //on envoit la liste des articles
+  vSend=send(*descBrCv,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
+
+  //reception du message de synchronisation
+  initTab(buffer,sBuffer);
+  vRecv=recv(*descBrCv,buffer,sBuffer,0);
+  if(vRecv==-1){
+    perror("--receive");
+    exit(1);
+  }
+
+  //envoi saisie ID article
+  initTab(buffer,sBuffer);
+  strcpy(buffer,"\nConsulter un article\nSaisir l'ID de l'article: ");
+  vSend=send(*descBrCv,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
+
+  //reception de l'ID
+  initTab(buffer,sBuffer);
+  vRecv=recv(*descBrCv,buffer,sBuffer,0);
+  if(vRecv==-1){
+    perror("--receive");
+    exit(1);
+  }
+  idArt=atoi(buffer);
+
+  initTab(buffer,sBuffer);
+  if(inGroup(idArt)!=1){
+    strcpy(buffer,"vous n'avez pas les droits requis\n");
+  }else{
+    p_shmwiki=(shmwiki *)shmat(shmid,NULL,0666);
+
+    //ajout du titre
+    strcat(buffer,"\nTitre : ");
+    strcat(buffer,p_shmwiki->art_list[idArt].title);
+    strcat(buffer,"\n");
+
+    //ajout de l'auteur
+    strcat(buffer,"Auteur : ");
+    strcat(buffer,p_shmwiki->art_list[idArt].author);
+    strcat(buffer,"\n");
+
+    //ajout de la date de creation
+    strcat(buffer,"Creation : ");
+    strcat(buffer,ctime(&p_shmwiki->art_list[idArt].create));
+
+    //ajout de la date de derniere modification
+    strcat(buffer,"Modification : ");
+    strcat(buffer,ctime(&p_shmwiki->art_list[idArt].modify));
+
+    //ajout du contenu
+    strcat(buffer,"Contenu : \n");
+    strcat(buffer,p_shmwiki->art_list[idArt].content);
+    strcat(buffer,"\n\n");
+
+    vShmdt=shmdt((void *)p_shmwiki);
+    if(vShmdt==-1){
+      perror("--shmdt");
+      exit(1);
+    }
+  }
+
+  //envoie de l'article
+  vSend=send(*descBrCv,buffer,strlen(buffer),0);
+  if(vSend==-1){
+    perror("--send");
+    exit(1);
+  }
+
+  //reception du message de synchronisation
+  initTab(buffer,sBuffer);
+  vRecv=recv(*descBrCv,buffer,sBuffer,0);
+  if(vRecv==-1){
+    perror("--receive");
+    exit(1);
+  }
+}
+
 void printArticle(int *descBrCv, int idAuth){
   //recepteur de la valeur des send et recv
   int vSend, vRecv;
@@ -1564,7 +1704,7 @@ void printArticle(int *descBrCv, int idAuth){
     strcat(buffer,ctime(&p_shmwiki->art_list[idArt].modify));
 
     //ajout du contenu
-    strcat(buffer,"Contenu : ");
+    strcat(buffer,"Contenu : \n");
     strcat(buffer,p_shmwiki->art_list[idArt].content);
     strcat(buffer,"\n\n");
 
