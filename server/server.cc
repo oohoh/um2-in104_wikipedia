@@ -929,14 +929,15 @@ void signupNotification(int* descBrCv, int idAuth){
 
   //buffer
   char buffer[255];
-  initTab(buffer,sizeof(buffer));
 
+  initTab(buffer,sizeof(buffer));
   p_shmwiki=(shmwiki *)shmat(shmid,NULL,0666);
   for(i=0;i<25;i++){
     if(p_shmwiki->grp_list[15].user[i]==idAuth){
       p_shmwiki->grp_list[15].user[i]=-1;
       strcpy(buffer,"0");
       reg=0;
+      break;
     }
   }
 
@@ -945,6 +946,7 @@ void signupNotification(int* descBrCv, int idAuth){
       if(p_shmwiki->grp_list[15].user[i]==-1){
 	p_shmwiki->grp_list[15].user[i]=idAuth;
 	strcpy(buffer,"1");
+	break;
       }
     }
   }
